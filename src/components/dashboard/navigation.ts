@@ -3,7 +3,7 @@ export type DashboardRole = "ADMIN" | "STAFF";
 export type DashboardNavItem = {
   label: string;
   icon: "overview" | "students" | "vr" | "qr" | "attendance" | "course" | "reports" | "users";
-  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/schools";
+  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/schools" | "/dashboard/course-enrollments";
   comingSoon?: boolean;
 };
 
@@ -13,7 +13,7 @@ const adminNavigation: DashboardNavItem[] = [
   { label: "VR İzleyenler", icon: "vr", href: "/dashboard/vr-records" },
   { label: "QR Kayıtları", icon: "qr", href: "/dashboard/qr-registrations" },
   { label: "Etkinlik Katılımı", icon: "attendance", href: "/dashboard/attendance" },
-  { label: "Dil Kursu Kayıtları", icon: "course", comingSoon: true },
+  { label: "Dil Kursu Kayıtları", icon: "course", href: "/dashboard/course-enrollments" },
   { label: "QR Yönetimi", icon: "qr", href: "/dashboard/qr-codes" },
   { label: "Okullar", icon: "students", href: "/dashboard/schools" },
   { label: "Raporlar", icon: "reports", comingSoon: true },

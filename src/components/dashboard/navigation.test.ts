@@ -11,6 +11,7 @@ describe("dashboard navigation", () => {
     expect(labels).toContain("Raporlar");
     expect(labels).toContain("Kullanıcılar");
     expect(labels).toContain("Okullar");
+    expect(labels).toContain("Dil Kursu Kayıtları");
   });
 
   it("limits STAFF navigation to operational modules", () => {
@@ -20,6 +21,7 @@ describe("dashboard navigation", () => {
     expect(labels).not.toContain("Raporlar");
     expect(labels).not.toContain("Kullanıcılar");
     expect(labels).not.toContain("Okullar");
+    expect(labels).not.toContain("Dil Kursu Kayıtları");
   });
 
   it("routes both roles to separate VR create and list screens", () => {
