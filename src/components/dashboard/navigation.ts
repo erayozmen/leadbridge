@@ -3,7 +3,7 @@ export type DashboardRole = "ADMIN" | "STAFF";
 export type DashboardNavItem = {
   label: string;
   icon: "overview" | "students" | "vr" | "qr" | "attendance" | "course" | "reports" | "users";
-  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/schools" | "/dashboard/course-enrollments";
+  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/schools" | "/dashboard/course-enrollments" | "/dashboard/reports";
   comingSoon?: boolean;
 };
 
@@ -16,7 +16,7 @@ const adminNavigation: DashboardNavItem[] = [
   { label: "Dil Kursu Kayıtları", icon: "course", href: "/dashboard/course-enrollments" },
   { label: "QR Yönetimi", icon: "qr", href: "/dashboard/qr-codes" },
   { label: "Okullar", icon: "students", href: "/dashboard/schools" },
-  { label: "Raporlar", icon: "reports", comingSoon: true },
+  { label: "Raporlar", icon: "reports", href: "/dashboard/reports" },
   { label: "Kullanıcılar", icon: "users", comingSoon: true },
 ];
 

@@ -41,4 +41,11 @@ describe("dashboard navigation", () => {
       expect(item).toMatchObject({ href: "/dashboard/attendance" });
     }
   });
+
+  it("routes only ADMIN to reports", () => {
+    expect(getDashboardNavigation("ADMIN")).toContainEqual(
+      expect.objectContaining({ label: "Raporlar", href: "/dashboard/reports" }),
+    );
+    expect(getDashboardNavigation("STAFF").some((item) => item.icon === "reports")).toBe(false);
+  });
 });
