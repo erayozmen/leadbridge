@@ -25,7 +25,7 @@ export type VrRecordListItem = {
   phone: string | null;
   createdAt: Date;
   createdByUser: { fullName: string };
-  assignedQrCode: { id: string; serialNumber: string; status: QrCodeStatus; assignedAt: Date | null } | null;
+  assignedQrCode: { id: string; serialNumber: string; status: QrCodeStatus; assignedAt: Date | null; usedAt: Date | null; archivedAt: Date | null; qrRegistration: { id: string } | null } | null;
   studentMatch: { id: string; matchedAt: Date; qrRegistration: { firstName: string; lastName: string } } | null;
 };
 
@@ -95,7 +95,7 @@ export async function listVrRecords(filters: VrRecordFilters, dependencies?: Lis
     select: {
       id: true, firstName: true, lastName: true, school: true, phone: true, createdAt: true, schoolRelation: { select: { name: true } },
       createdByUser: { select: { fullName: true } },
-      assignedQrCode: { select: { id: true, serialNumber: true, status: true, assignedAt: true } },
+      assignedQrCode: { select: { id: true, serialNumber: true, status: true, assignedAt: true, usedAt: true, archivedAt: true, qrRegistration: { select: { id: true } } } },
       studentMatch: { select: { id: true, matchedAt: true, qrRegistration: { select: { firstName: true, lastName: true } } } },
     },
     orderBy: { createdAt: "desc" }, skip: (page - 1) * VR_RECORDS_PAGE_SIZE, take: VR_RECORDS_PAGE_SIZE,
