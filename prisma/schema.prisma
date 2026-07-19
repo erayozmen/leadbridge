@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum QrCodeStatus {
+  CREATED
+  ASSIGNED
+  USED
+  DISABLED
+}
+
+enum SchoolStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model School {
+  id              String           @id @default(cuid())
+  name            String
+  normalizedName  String           @unique
+  status          SchoolStatus     @default(ACTIVE)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  vrRecords       VrRecord[]
+  qrRegistrations QrRegistration[]
+
+  @@index([status])
+  @@index([name])
+}
+
+model User {
+  id                    String           @id @default(cuid())
+  authUserId            String           @unique
+  email                 String           @unique
+  fullName              String
+  role                  UserRole         @default(STAFF)
+  status                UserStatus       @default(ACTIVE)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  createdVrRecords      VrRecord[]       @relation("VrRecordCreatedBy")
+  studentMatches        StudentMatch[]   @relation("StudentMatchMatchedBy")
+  attendedRegistrations QrRegistration[] @relation("QrRegistrationAttendedBy")
+  enrolledRegistrations QrRegistration[] @relation("QrRegistrationEnrolledBy")
+}
+
+model VrRecord {
+  id               String        @id @default(cuid())
+  firstName        String
+  lastName         String
+  school           String
+  schoolId         String?
+  phone            String?
+  createdByUserId  String
+  assignedQrCodeId String?       @unique
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  createdByUser    User          @relation("VrRecordCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assignedQrCode   QrCode?       @relation("QrCodeAssignedToVrRecord", fields: [assignedQrCodeId], references: [id], onDelete: SetNull)
+  studentMatch     StudentMatch?
+  schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+
+  @@index([firstName])
+  @@index([lastName])
+  @@index([school])
+  @@index([schoolId])
+  @@index([createdByUserId])
+  @@index([createdAt])
+}
+
+model QrCode {
+  id               String          @id @default(cuid())
+  serialNumber     String          @unique
+  tokenHash        String          @unique
+  status           QrCodeStatus    @default(CREATED)
+  assignedAt       DateTime?
+  usedAt           DateTime?
+  archivedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  assignedVrRecord VrRecord?       @relation("QrCodeAssignedToVrRecord")
+  qrRegistration   QrRegistration?
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([archivedAt])
+}
+
+model QrRegistration {
+  id               String        @id @default(cuid())
+  qrCodeId         String        @unique
+  firstName        String
+  lastName         String
+  guardianName     String
+  phone            String
+  school           String
+  schoolId         String?
+  registeredAt     DateTime      @default(now())
+  attendedEvent    Boolean       @default(false)
+  attendedAt       DateTime?
+  attendedByUserId String?
+  enrolledCourse   Boolean       @default(false)
+  enrolledAt       DateTime?
+  enrolledByUserId String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  qrCode           QrCode        @relation(fields: [qrCodeId], references: [id], onDelete: Restrict)
+  attendedByUser   User?         @relation("QrRegistrationAttendedBy", fields: [attendedByUserId], references: [id], onDelete: SetNull)
+  enrolledByUser   User?         @relation("QrRegistrationEnrolledBy", fields: [enrolledByUserId], references: [id], onDelete: SetNull)
+  studentMatch     StudentMatch?
+  schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+
+  @@index([firstName])
+  @@index([lastName])
+  @@index([school])
+  @@index([schoolId])
+  @@index([phone])
+  @@index([registeredAt])
+  @@index([attendedEvent])
+  @@index([enrolledCourse])
+}
+
+model StudentMatch {
+  id               String         @id @default(cuid())
+  vrRecordId       String         @unique
+  qrRegistrationId String         @unique
+  matchedByUserId  String
+  matchedAt        DateTime       @default(now())
+  vrRecord         VrRecord       @relation(fields: [vrRecordId], references: [id], onDelete: Cascade)
+  qrRegistration   QrRegistration @relation(fields: [qrRegistrationId], references: [id], onDelete: Cascade)
+  matchedByUser    User           @relation("StudentMatchMatchedBy", fields: [matchedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([matchedByUserId])
+  @@index([matchedAt])
+}

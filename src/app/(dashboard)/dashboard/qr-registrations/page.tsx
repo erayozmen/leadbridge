@@ -1,0 +1,20 @@
+import { Search } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { requireAdmin } from "@/features/auth/server/auth";
+import { listQrRegistrations } from "@/features/student-matching/queries/list-qr-registrations";
+
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+const first = (v: string | string[] | undefined) => Array.isArray(v) ? v[0] : v;
+const date = new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" });
+function href(page: number, filters: { firstName?: string; lastName?: string; school?: string }) { const q = new URLSearchParams(); Object.entries(filters).forEach(([k,v]) => { if(v) q.set(k,v); }); if(page>1)q.set("page",String(page)); return `/dashboard/qr-registrations${q.size?`?${q}`:""}`; }
+
+export default async function QrRegistrationsPage({ searchParams }: Props) {
+  await requireAdmin(); const p = await searchParams; const filters = { firstName:first(p.firstName), lastName:first(p.lastName), school:first(p.school) }; const result = await listQrRegistrations({ ...filters, page:Number(first(p.page)) });
+  return <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><h1 className="text-3xl font-semibold">QR Kayıtları</h1><p className="mt-2 text-muted-foreground">QR üzerinden kayıt olan öğrencileri ve eşleşme durumlarını görüntüleyin.</p><Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none"><form method="get" className="grid gap-4 border-b p-5 md:grid-cols-[1fr_1fr_1.2fr_auto] md:items-end">{[["firstName","Ad"],["lastName","Soyad"],["school","Okul"]].map(([key,label])=><div key={key} className="grid gap-2"><Label htmlFor={`qr-${key}`}>{label}</Label><Input id={`qr-${key}`} name={key} defaultValue={filters[key as keyof typeof filters]} /></div>)}<div className="flex gap-2"><Button type="submit"><Search />Ara</Button><Button asChild variant="outline"><Link href="/dashboard/qr-registrations">Temizle</Link></Button></div></form>{result.records.length?<Table><TableHeader><TableRow><TableHead className="pl-5">Ad Soyad</TableHead><TableHead>Okul</TableHead><TableHead>Telefon</TableHead><TableHead>QR Seri</TableHead><TableHead>Kayıt Tarihi</TableHead><TableHead className="pr-5">Eşleşme</TableHead></TableRow></TableHeader><TableBody>{result.records.map(r=><TableRow key={r.id}><TableCell className="pl-5 font-medium">{r.firstName} {r.lastName}</TableCell><TableCell>{r.school}</TableCell><TableCell>{r.phone}</TableCell><TableCell className="font-mono">{r.qrCode.serialNumber}</TableCell><TableCell>{date.format(r.registeredAt)}</TableCell><TableCell className="pr-5">{r.studentMatch?<div><Badge>Eşleşti</Badge><Button asChild variant="link" size="sm"><Link href={`/dashboard/vr-records/${r.studentMatch.vrRecord.id}/match-registration`}>{r.studentMatch.vrRecord.firstName} {r.studentMatch.vrRecord.lastName}</Link></Button></div>:<Badge variant="secondary">Eşleşmedi</Badge>}</TableCell></TableRow>)}</TableBody></Table>:<div className="p-12 text-center">{result.hasFilters?"Aramayla eşleşen QR kaydı bulunamadı.":"Henüz QR kaydı yok."}</div>}<div className="flex justify-between border-t p-5 text-sm"><span>Toplam {result.total} · Sayfa {result.page}/{result.pageCount}</span><div className="flex gap-2"><Button size="sm" variant="outline" asChild={result.page>1} disabled={result.page<=1}>{result.page>1?<Link href={href(result.page-1,filters)}>Önceki</Link>:<span>Önceki</span>}</Button><Button size="sm" variant="outline" asChild={result.page<result.pageCount} disabled={result.page>=result.pageCount}>{result.page<result.pageCount?<Link href={href(result.page+1,filters)}>Sonraki</Link>:<span>Sonraki</span>}</Button></div></div></Card></main>;
+}

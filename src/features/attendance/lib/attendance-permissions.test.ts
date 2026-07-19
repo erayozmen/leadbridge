@@ -1,0 +1,1 @@
+import{describe,expect,it}from"vitest";import{canMarkAttendance}from"@/features/attendance/lib/attendance-permissions";describe("attendance action visibility",()=>{it("does not produce an action for attended records",()=>{expect(canMarkAttendance(true)).toBe(false);expect(canMarkAttendance(false)).toBe(true);});});
