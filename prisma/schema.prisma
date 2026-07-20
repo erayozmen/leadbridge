@@ -55,6 +55,7 @@ model User {
   studentMatches        StudentMatch[]   @relation("StudentMatchMatchedBy")
   attendedRegistrations QrRegistration[] @relation("QrRegistrationAttendedBy")
   enrolledRegistrations QrRegistration[] @relation("QrRegistrationEnrolledBy")
+  auditLogs             AuditLog[]       @relation("AuditLogActor")
 }
 
 model VrRecord {
@@ -145,4 +146,27 @@ model StudentMatch {
 
   @@index([matchedByUserId])
   @@index([matchedAt])
+}
+
+model AuditLog {
+  id                String   @id @default(cuid())
+  actorUserId       String?
+  actorType         String   @default("USER")
+  action            String
+  entityType        String
+  entityId          String
+  relatedEntityType String?
+  relatedEntityId   String?
+  reason            String?
+  beforeData        Json?
+  afterData         Json?
+  metadata          Json?
+  correlationId     String?
+  createdAt         DateTime @default(now())
+  actorUser         User?    @relation("AuditLogActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorUserId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
 }
