@@ -1,0 +1,10 @@
+export const AUDIT_ENTITY_TYPES = {
+  STUDENT_MATCH: "STUDENT_MATCH",
+  QR_CODE: "QR_CODE",
+  QR_REGISTRATION: "QR_REGISTRATION",
+  VR_RECORD: "VR_RECORD",
+  SCHOOL: "SCHOOL",
+} as const;
+
+export type AuditEntityType =
+  (typeof AUDIT_ENTITY_TYPES)[keyof typeof AUDIT_ENTITY_TYPES];
