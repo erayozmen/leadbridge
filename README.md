@@ -82,6 +82,14 @@ npm run dev
 
 Do not add service-role keys, database passwords, or other secrets to tracked files.
 
+## Production Operations
+
+- `GET /api/health` provides a cache-free uptime probe without database or environment details.
+- Global response headers deny framing, restrict browser capabilities, and apply a conservative content security policy.
+- Vercel deploys the GitHub `main` branch; Prisma Client is generated during `postinstall`.
+- Database migrations are reviewed and committed separately, then deployed through the controlled release process.
+- Verify Supabase backups, migration status, authentication, public QR registration, and ADMIN/STAFF permissions during every production acceptance cycle.
+
 ## Prisma
 
 Validate and generate the client:
