@@ -17,6 +17,7 @@ function formData() {
   const data = new FormData();
   data.set("vrRecordId", "vr_1");
   data.set("qrCodeId", "qr_1");
+  data.set("reason", "QR yanlış öğrenciye verildi");
   return data;
 }
 
@@ -29,10 +30,24 @@ describe("unassignQrCodeAction", () => {
     unassignQrCode.mockResolvedValue({ ok: true, serialNumber: "LB-000001" });
   });
 
-  it("runs its own ADMIN check and passes only relation ids", async () => {
+  it("runs its own ADMIN check and passes relation ids with reason", async () => {
     await unassignQrCodeAction(initial, formData());
     expect(requireAdmin).toHaveBeenCalledOnce();
-    expect(unassignQrCode).toHaveBeenCalledWith({ vrRecordId: "vr_1", qrCodeId: "qr_1" });
+    expect(unassignQrCode).toHaveBeenCalledWith({
+      vrRecordId: "vr_1",
+      qrCodeId: "qr_1",
+      reason: "QR yanlış öğrenciye verildi",
+    });
+  });
+
+  it("rejects invalid reason before authorization or service access", async () => {
+    const data = formData();
+    data.set("reason", "kısa");
+    const result = await unassignQrCodeAction(initial, data);
+    expect(result.status).toBe("error");
+    expect(requireAdmin).not.toHaveBeenCalled();
+    expect(unassignQrCode).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("rejects unauthorized action calls before the service", async () => {

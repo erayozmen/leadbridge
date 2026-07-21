@@ -1,6 +1,8 @@
-import { QrCodeStatus } from "@prisma/client";
+import { QrCodeStatus, UserRole, UserStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
-import { AuthError } from "@/features/auth/types/auth";
+import { AUDIT_ACTIONS } from "@/features/audit/constants/audit-actions";
+import { AUDIT_ENTITY_TYPES } from "@/features/audit/constants/audit-entity-types";
+import { AuthError, type AppUser } from "@/features/auth/types/auth";
 import {
   unassignQrCode,
   type UnassignQrCodeDependencies,
@@ -8,7 +10,17 @@ import {
 
 vi.mock("server-only", () => ({}));
 
-type State = {
+const admin: AppUser = {
+  id: "admin_1",
+  authUserId: "auth_1",
+  email: "admin@example.test",
+  fullName: "Admin User",
+  role: UserRole.ADMIN,
+  status: UserStatus.ACTIVE,
+};
+const assignedAt = new Date("2026-07-20T12:00:00.000Z");
+
+type Options = {
   status?: QrCodeStatus;
   usedAt?: Date | null;
   archivedAt?: Date | null;
@@ -17,46 +29,76 @@ type State = {
   assignment?: boolean;
   detachCount?: number;
   releaseCount?: number;
-  error?: boolean;
+  auditError?: boolean;
+  databaseError?: boolean;
 };
 
-function dependencies(state: State = {}) {
+function dependencies(options: Options = {}) {
+  const state = { qrReleased: false, vrDetached: false, auditCount: 0 };
   const transaction = {
     findAssignment: vi.fn(async (vrRecordId: string, qrCodeId: string) => {
-      if (state.error) throw new Error("raw database secret");
-      if (state.assignment === false || vrRecordId !== "vr_1" || qrCodeId !== "qr_1") return null;
+      if (options.databaseError) throw new Error("raw database secret");
+      if (options.assignment === false || vrRecordId !== "vr_1" || qrCodeId !== "qr_1") return null;
       return {
         vrRecordId: "vr_1",
         assignedQrCodeId: "qr_1",
-        hasStudentMatch: state.hasStudentMatch ?? false,
+        hasStudentMatch: options.hasStudentMatch ?? false,
         qrCode: {
           id: "qr_1",
           serialNumber: "LB-000001",
-          status: state.status ?? QrCodeStatus.ASSIGNED,
-          usedAt: state.usedAt ?? null,
-          archivedAt: state.archivedAt ?? null,
-          hasRegistration: state.hasRegistration ?? false,
+          status: options.status ?? QrCodeStatus.ASSIGNED,
+          assignedAt,
+          usedAt: options.usedAt ?? null,
+          archivedAt: options.archivedAt ?? null,
+          hasRegistration: options.hasRegistration ?? false,
         },
       };
     }),
-    detachQrFromVrRecord: vi.fn(async () => state.detachCount ?? 1),
-    releaseQrCode: vi.fn(async () => state.releaseCount ?? 1),
+    releaseQrCode: vi.fn(async () => {
+      const count = options.releaseCount ?? 1;
+      if (count === 1) state.qrReleased = true;
+      return count;
+    }),
+    detachQrFromVrRecord: vi.fn(async () => {
+      const count = options.detachCount ?? 1;
+      if (count === 1) state.vrDetached = true;
+      return count;
+    }),
+    writeAudit: vi.fn(async () => {
+      if (options.auditError) throw new Error("audit insert failed");
+      state.auditCount += 1;
+      return { id: "audit_1", createdAt: new Date() };
+    }),
   };
   const deps: UnassignQrCodeDependencies = {
-    requireAdmin: vi.fn(async () => ({})),
-    runTransaction: vi.fn(async (callback) => callback(transaction)),
+    requireAdmin: vi.fn(async () => admin),
+    runTransaction: vi.fn(async (callback) => {
+      const snapshot = { ...state };
+      try {
+        return await callback(transaction);
+      } catch (error) {
+        Object.assign(state, snapshot);
+        throw error;
+      }
+    }),
   };
-  return { deps, transaction };
+  return { deps, transaction, state };
 }
 
-const input = { vrRecordId: "vr_1", qrCodeId: "qr_1" };
+const input = {
+  vrRecordId: "vr_1",
+  qrCodeId: "qr_1",
+  reason: "QR yanlış öğrenciye verildi",
+};
 
 describe("unassignQrCode", () => {
-  it("allows ADMIN to release an unused assigned QR", async () => {
-    await expect(unassignQrCode(input, dependencies().deps)).resolves.toEqual({
+  it("releases an unused assignment and writes audit for ADMIN", async () => {
+    const { deps, state } = dependencies();
+    await expect(unassignQrCode(input, deps)).resolves.toEqual({
       ok: true,
       serialNumber: "LB-000001",
     });
+    expect(state).toEqual({ qrReleased: true, vrDetached: true, auditCount: 1 });
   });
 
   it("rejects STAFF before opening a transaction", async () => {
@@ -66,16 +108,28 @@ describe("unassignQrCode", () => {
     expect(deps.runTransaction).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid ids before authorization", async () => {
-    const { deps } = dependencies();
-    await expect(unassignQrCode({ vrRecordId: "", qrCodeId: "qr_1" }, deps)).resolves.toMatchObject({ code: "INVALID_INPUT" });
-    expect(deps.requireAdmin).not.toHaveBeenCalled();
+  it("rejects blank or short reason before authorization", async () => {
+    for (const reason of ["", "çok kısa"]) {
+      const { deps } = dependencies();
+      await expect(unassignQrCode({ ...input, reason }, deps)).resolves.toMatchObject({ code: "INVALID_INPUT" });
+      expect(deps.requireAdmin).not.toHaveBeenCalled();
+    }
   });
 
-  it("rejects a missing or mismatched assignment", async () => {
+  it("trims reason and uses authenticated app user id", async () => {
+    const { deps, transaction } = dependencies();
+    await unassignQrCode({ ...input, reason: "  QR yanlış öğrenciye verildi  " }, deps);
+    expect(transaction.writeAudit).toHaveBeenCalledWith(expect.objectContaining({
+      actor: { type: "USER", userId: "admin_1" },
+      reason: "QR yanlış öğrenciye verildi",
+    }));
+  });
+
+  it("rejects a missing or mismatched assignment without audit", async () => {
     const { deps, transaction } = dependencies({ assignment: false });
     await expect(unassignQrCode(input, deps)).resolves.toMatchObject({ code: "ASSIGNMENT_NOT_FOUND" });
-    expect(transaction.detachQrFromVrRecord).not.toHaveBeenCalled();
+    expect(transaction.releaseQrCode).not.toHaveBeenCalled();
+    expect(transaction.writeAudit).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -86,35 +140,54 @@ describe("unassignQrCode", () => {
     ["archive", { archivedAt: new Date() }, "QR_ARCHIVED"],
     ["disabled status", { status: QrCodeStatus.DISABLED }, "QR_DISABLED"],
     ["created status", { status: QrCodeStatus.CREATED }, "QR_NOT_UNASSIGNABLE"],
-  ] as const)("rejects QR with %s", async (_label, state, code) => {
-    const { deps, transaction } = dependencies(state);
+  ] as const)("rejects QR with %s without audit", async (_label, options, code) => {
+    const { deps, transaction } = dependencies(options);
     await expect(unassignQrCode(input, deps)).resolves.toMatchObject({ code });
-    expect(transaction.detachQrFromVrRecord).not.toHaveBeenCalled();
     expect(transaction.releaseQrCode).not.toHaveBeenCalled();
+    expect(transaction.writeAudit).not.toHaveBeenCalled();
   });
 
-  it("updates only the requested VR and QR assignment fields", async () => {
+  it("does not audit when either conditional update fails", async () => {
+    for (const options of [{ releaseCount: 0 }, { detachCount: 0 }]) {
+      const { deps, transaction } = dependencies(options);
+      await expect(unassignQrCode(input, deps)).resolves.toMatchObject({ code: "UNASSIGNMENT_CONFLICT" });
+      expect(transaction.writeAudit).not.toHaveBeenCalled();
+    }
+  });
+
+  it("rolls QR and VR changes back when audit insert fails", async () => {
+    const { deps, state } = dependencies({ auditError: true });
+    await expect(unassignQrCode(input, deps)).resolves.toMatchObject({ code: "UNASSIGNMENT_FAILED" });
+    expect(state).toEqual({ qrReleased: false, vrDetached: false, auditCount: 0 });
+  });
+
+  it("writes exact before and after operational fields", async () => {
     const { deps, transaction } = dependencies();
     await unassignQrCode(input, deps);
-    expect(transaction.detachQrFromVrRecord).toHaveBeenCalledWith("vr_1", "qr_1");
-    expect(transaction.releaseQrCode).toHaveBeenCalledWith("qr_1", "vr_1");
-    expect(transaction.releaseQrCode.mock.invocationCallOrder[0]).toBeLessThan(
-      transaction.detachQrFromVrRecord.mock.invocationCallOrder[0],
-    );
-    expect(Object.keys(transaction)).toEqual(["findAssignment", "detachQrFromVrRecord", "releaseQrCode"]);
-  });
-
-  it.each([
-    [{ releaseCount: 0 }, "detachQrFromVrRecord"],
-    [{ detachCount: 0 }, null],
-  ] as const)("returns conflict for conditional update failure", async (state, untouchedMethod) => {
-    const { deps, transaction } = dependencies(state);
-    await expect(unassignQrCode(input, deps)).resolves.toMatchObject({ code: "UNASSIGNMENT_CONFLICT" });
-    if (untouchedMethod) expect(transaction[untouchedMethod]).not.toHaveBeenCalled();
+    expect(transaction.writeAudit).toHaveBeenCalledWith({
+      actor: { type: "USER", userId: "admin_1" },
+      action: AUDIT_ACTIONS.QR_ASSIGNMENT_REVERSED,
+      entityType: AUDIT_ENTITY_TYPES.QR_CODE,
+      entityId: "qr_1",
+      relatedEntity: { type: AUDIT_ENTITY_TYPES.VR_RECORD, id: "vr_1" },
+      reason: input.reason,
+      beforeData: {
+        status: QrCodeStatus.ASSIGNED,
+        assignedAt: assignedAt.toISOString(),
+        assignedQrCodeId: "qr_1",
+      },
+      afterData: {
+        status: QrCodeStatus.CREATED,
+        assignedAt: null,
+        assignedQrCodeId: null,
+      },
+    });
+    const payload = JSON.stringify(transaction.writeAudit.mock.calls[0][0]);
+    expect(payload).not.toMatch(/token|tokenHash|serialNumber|firstName|lastName|phone|school/);
   });
 
   it("hides raw transaction failures", async () => {
-    const result = await unassignQrCode(input, dependencies({ error: true }).deps);
+    const result = await unassignQrCode(input, dependencies({ databaseError: true }).deps);
     expect(result).toMatchObject({ code: "UNASSIGNMENT_FAILED" });
     expect(JSON.stringify(result)).not.toContain("raw database secret");
   });

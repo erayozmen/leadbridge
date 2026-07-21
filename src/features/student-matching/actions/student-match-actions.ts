@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { AUDIT_ACTIONS } from "@/features/audit/constants/audit-actions";
+import { validateAuditReason } from "@/features/audit/lib/validate-audit-input";
 import { requireAdmin } from "@/features/auth/server/auth";
 import { AuthError } from "@/features/auth/types/auth";
 import { createStudentMatch } from "@/features/student-matching/services/create-student-match";
@@ -30,6 +32,19 @@ export async function deleteStudentMatchAction(
   _state: MatchActionState,
   formData: FormData,
 ): Promise<MatchActionState> {
+  let reason: string;
+  try {
+    reason = validateAuditReason(
+      AUDIT_ACTIONS.STUDENT_MATCH_REMOVED,
+      text(formData, "reason"),
+    ) as string;
+  } catch {
+    return {
+      status: "error",
+      message: "İşlem nedeni 10 ile 500 karakter arasında olmalıdır.",
+    };
+  }
+
   try {
     await requireAdmin();
   } catch (error) {
@@ -44,6 +59,7 @@ export async function deleteStudentMatchAction(
   const result = await deleteStudentMatch({
     matchId: text(formData, "matchId"),
     vrRecordId: text(formData, "vrRecordId"),
+    reason,
   });
   if (!result.ok) return { status: "error", message: result.message };
 

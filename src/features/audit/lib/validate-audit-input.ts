@@ -149,6 +149,22 @@ function validateReason(value: unknown) {
   return reason;
 }
 
+export function validateAuditReason(action: AuditAction, value: unknown): string | undefined {
+  const reason = value === undefined ? undefined : validateReason(value);
+  if (REASON_REQUIRED_ACTIONS.has(action) && reason === undefined) {
+    fail("reason is required for this action");
+  }
+  return reason;
+}
+
+export function isAuditReasonValid(action: AuditAction, value: unknown): boolean {
+  try {
+    return validateAuditReason(action, value) !== undefined;
+  } catch {
+    return false;
+  }
+}
+
 export function validateAuditInput(input: unknown): WriteAuditLogInput {
   if (!isPlainObject(input)) fail("audit input must be a plain object");
   assertOnlyKeys(
@@ -199,11 +215,10 @@ export function validateAuditInput(input: unknown): WriteAuditLogInput {
     };
   }
 
-  let reason: string | undefined;
-  if (Object.hasOwn(input, "reason")) reason = validateReason(input.reason);
-  if (REASON_REQUIRED_ACTIONS.has(action) && reason === undefined) {
-    fail("reason is required for this action");
-  }
+  const reason = validateAuditReason(
+    action,
+    Object.hasOwn(input, "reason") ? input.reason : undefined,
+  );
 
   const jsonFields = ["beforeData", "afterData", "metadata"] as const;
   const validatedJson: Partial<Record<(typeof jsonFields)[number], AuditJsonValue>> = {};

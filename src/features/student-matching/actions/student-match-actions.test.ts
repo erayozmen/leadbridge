@@ -18,6 +18,7 @@ function formData() {
   const data = new FormData();
   data.set("matchId", "match_1");
   data.set("vrRecordId", "vr_1");
+  data.set("reason", "Yanlış öğrenciler eşleştirildi");
   return data;
 }
 
@@ -33,7 +34,21 @@ describe("deleteStudentMatchAction", () => {
   it("applies its own ADMIN check and passes both relation keys to the service", async () => {
     await deleteStudentMatchAction(initial, formData());
     expect(requireAdmin).toHaveBeenCalledOnce();
-    expect(deleteStudentMatch).toHaveBeenCalledWith({ matchId: "match_1", vrRecordId: "vr_1" });
+    expect(deleteStudentMatch).toHaveBeenCalledWith({
+      matchId: "match_1",
+      vrRecordId: "vr_1",
+      reason: "Yanlış öğrenciler eşleştirildi",
+    });
+  });
+
+  it("rejects invalid reason before authorization or service access", async () => {
+    const data = formData();
+    data.set("reason", "kısa");
+    const result = await deleteStudentMatchAction(initial, data);
+    expect(result.status).toBe("error");
+    expect(requireAdmin).not.toHaveBeenCalled();
+    expect(deleteStudentMatch).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("rejects unauthorized requests before the service", async () => {
