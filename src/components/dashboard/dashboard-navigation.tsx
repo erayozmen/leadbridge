@@ -9,7 +9,6 @@ import {
   Search,
   Users,
   Video,
-  CalendarDays,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,7 +30,6 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   course: BookOpenCheck,
   reports: BarChart3,
   users: Users,
-  events: CalendarDays,
 };
 
 export function DashboardNavigation({

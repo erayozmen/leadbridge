@@ -5,7 +5,6 @@ export const AUDIT_ENTITY_TYPES = {
   VR_RECORD: "VR_RECORD",
   SCHOOL: "SCHOOL",
   USER: "USER",
-  EVENT: "EVENT",
 } as const;
 
 export type AuditEntityType =
