@@ -5,7 +5,7 @@ import { AUDIT_ACTIONS } from "@/features/audit/constants/audit-actions";
 import { validateAuditReason } from "@/features/audit/lib/validate-audit-input";
 import { markAttendance } from "@/features/attendance/services/mark-attendance";
 import { reverseAttendance } from "@/features/attendance/services/reverse-attendance";
-import { requireAdmin } from "@/features/auth/server/auth";
+import { requireAdmin, requireStaffOrAdmin } from "@/features/auth/server/auth";
 import { AuthError } from "@/features/auth/types/auth";
 
 export type AttendanceActionState = {
@@ -22,6 +22,15 @@ export async function markAttendanceAction(
   _state: AttendanceActionState,
   formData: FormData,
 ): Promise<AttendanceActionState> {
+  try {
+    await requireStaffOrAdmin();
+  } catch {
+    return {
+      status: "error",
+      message: "Bu işlem için yetkiniz bulunmuyor.",
+    };
+  }
+
   const result = await markAttendance({
     qrRegistrationId: text(formData, "qrRegistrationId"),
   });

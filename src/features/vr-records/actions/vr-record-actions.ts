@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { requireStaffOrAdmin } from "@/features/auth/server/auth";
 import { createVrRecord } from "@/features/vr-records/services/create-vr-record";
 import type { VrRecordFieldErrors } from "@/features/vr-records/types/vr-record-result";
 
@@ -20,6 +21,12 @@ export async function createVrRecordAction(
   _previousState: VrRecordActionState,
   formData: FormData,
 ): Promise<VrRecordActionState> {
+  try {
+    await requireStaffOrAdmin();
+  } catch {
+    return { status: "error", message: "Bu işlem için yetkiniz bulunmuyor." };
+  }
+
   const result = await createVrRecord({
     firstName: getTextField(formData, "firstName"),
     lastName: getTextField(formData, "lastName"),

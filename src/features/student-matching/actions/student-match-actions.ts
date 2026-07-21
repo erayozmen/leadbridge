@@ -18,6 +18,15 @@ export async function createStudentMatchAction(
   _state: MatchActionState,
   formData: FormData,
 ): Promise<MatchActionState> {
+  try {
+    await requireAdmin();
+  } catch {
+    return {
+      status: "error",
+      message: "Bu işlem yalnızca yöneticiler tarafından yapılabilir.",
+    };
+  }
+
   const result = await createStudentMatch({
     vrRecordId: text(formData, "vrRecordId"),
     qrRegistrationId: text(formData, "qrRegistrationId"),

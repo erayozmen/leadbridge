@@ -1,18 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthError } from "@/features/auth/types/auth";
 import {
+  markAttendanceAction,
   reverseAttendanceAction,
   type AttendanceActionState,
 } from "@/features/attendance/actions/attendance-actions";
 
-const { requireAdmin, markAttendance, reverseAttendance, revalidatePath } = vi.hoisted(() => ({
+const { requireAdmin, requireStaffOrAdmin, markAttendance, reverseAttendance, revalidatePath } = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
+  requireStaffOrAdmin: vi.fn(),
   markAttendance: vi.fn(),
   reverseAttendance: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
-vi.mock("@/features/auth/server/auth", () => ({ requireAdmin }));
+vi.mock("@/features/auth/server/auth", () => ({ requireAdmin, requireStaffOrAdmin }));
 vi.mock("@/features/attendance/services/mark-attendance", () => ({ markAttendance }));
 vi.mock("@/features/attendance/services/reverse-attendance", () => ({ reverseAttendance }));
 vi.mock("next/cache", () => ({ revalidatePath }));
@@ -71,6 +73,28 @@ describe("reverseAttendanceAction", () => {
     });
     const result = await reverseAttendanceAction(initial, formData());
     expect(result).toEqual({ status: "error", message: "Katılım geri alınamadı." });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("markAttendanceAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    requireStaffOrAdmin.mockResolvedValue({ id: "staff_1" });
+    markAttendance.mockResolvedValue({ ok: true, attendedAt: new Date() });
+  });
+
+  it("requires STAFF or ADMIN before service access", async () => {
+    await markAttendanceAction(initial, formData());
+    expect(requireStaffOrAdmin).toHaveBeenCalledOnce();
+    expect(markAttendance).toHaveBeenCalledOnce();
+  });
+
+  it("rejects unauthorized callers without mutation or revalidation", async () => {
+    requireStaffOrAdmin.mockRejectedValue(new AuthError("FORBIDDEN"));
+    const result = await markAttendanceAction(initial, formData());
+    expect(result.status).toBe("error");
+    expect(markAttendance).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });

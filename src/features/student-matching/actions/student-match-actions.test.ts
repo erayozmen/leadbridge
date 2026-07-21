@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { requireAdmin, deleteStudentMatch, revalidatePath } = vi.hoisted(() => ({
+const { requireAdmin, createStudentMatch, deleteStudentMatch, revalidatePath } = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
+  createStudentMatch: vi.fn(),
   deleteStudentMatch: vi.fn(),
   revalidatePath: vi.fn(),
 }));
@@ -9,9 +10,12 @@ const { requireAdmin, deleteStudentMatch, revalidatePath } = vi.hoisted(() => ({
 vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("@/features/auth/server/auth", () => ({ requireAdmin }));
 vi.mock("@/features/student-matching/services/delete-student-match", () => ({ deleteStudentMatch }));
-vi.mock("@/features/student-matching/services/create-student-match", () => ({ createStudentMatch: vi.fn() }));
+vi.mock("@/features/student-matching/services/create-student-match", () => ({ createStudentMatch }));
 
-import { deleteStudentMatchAction } from "@/features/student-matching/actions/student-match-actions";
+import {
+  createStudentMatchAction,
+  deleteStudentMatchAction,
+} from "@/features/student-matching/actions/student-match-actions";
 
 const initial = { status: "idle" as const, message: null };
 function formData() {
@@ -69,6 +73,34 @@ describe("deleteStudentMatchAction", () => {
     deleteStudentMatch.mockResolvedValue({ ok: false, code: "MATCH_NOT_FOUND", message: "Eşleşme bulunamadı." });
     const result = await deleteStudentMatchAction(initial, formData());
     expect(result).toEqual({ status: "error", message: "Eşleşme bulunamadı." });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("createStudentMatchAction", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    requireAdmin.mockResolvedValue({ id: "admin_1" });
+    createStudentMatch.mockResolvedValue({
+      ok: true,
+      match: { id: "match_1", matchedAt: new Date() },
+    });
+  });
+
+  it("requires ADMIN before creating a match", async () => {
+    const data = new FormData();
+    data.set("vrRecordId", "vr_1");
+    data.set("qrRegistrationId", "registration_1");
+    await createStudentMatchAction(initial, data);
+    expect(requireAdmin).toHaveBeenCalledOnce();
+    expect(createStudentMatch).toHaveBeenCalledOnce();
+  });
+
+  it("rejects STAFF without mutation or revalidation", async () => {
+    requireAdmin.mockRejectedValue(new Error("forbidden"));
+    const result = await createStudentMatchAction(initial, new FormData());
+    expect(result.status).toBe("error");
+    expect(createStudentMatch).not.toHaveBeenCalled();
     expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
