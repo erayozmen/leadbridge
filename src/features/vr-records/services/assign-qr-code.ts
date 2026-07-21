@@ -13,7 +13,13 @@ const assignmentSchema = z.object({
 
 type AssignmentTransaction = {
   findVrRecord: (id: string) => Promise<{ id: string; assignedQrCodeId: string | null } | null>;
-  findQrCode: (id: string) => Promise<{ id: string; serialNumber: string; status: QrCodeStatus; assigned: boolean } | null>;
+  findQrCode: (id: string) => Promise<{
+    id: string;
+    serialNumber: string;
+    status: QrCodeStatus;
+    archivedAt: Date | null;
+    assigned: boolean;
+  } | null>;
   claimQrCode: (id: string, assignedAt: Date) => Promise<number>;
   attachQrToVrRecord: (vrRecordId: string, qrCodeId: string) => Promise<number>;
 };
@@ -55,16 +61,28 @@ async function getDefaultDependencies(): Promise<AssignQrCodeDependencies> {
                 id: true,
                 serialNumber: true,
                 status: true,
+                archivedAt: true,
                 assignedVrRecord: { select: { id: true } },
               },
             });
             return qrCode
-              ? { id: qrCode.id, serialNumber: qrCode.serialNumber, status: qrCode.status, assigned: Boolean(qrCode.assignedVrRecord) }
+              ? {
+                  id: qrCode.id,
+                  serialNumber: qrCode.serialNumber,
+                  status: qrCode.status,
+                  archivedAt: qrCode.archivedAt,
+                  assigned: Boolean(qrCode.assignedVrRecord),
+                }
               : null;
           },
           async claimQrCode(id, assignedAt) {
             const result = await tx.qrCode.updateMany({
-              where: { id, status: QrCodeStatus.CREATED, assignedVrRecord: null },
+              where: {
+                id,
+                status: QrCodeStatus.CREATED,
+                archivedAt: null,
+                assignedVrRecord: null,
+              },
               data: { status: QrCodeStatus.ASSIGNED, assignedAt },
             });
             return result.count;
@@ -105,7 +123,11 @@ export async function assignQrCode(
 
       const qrCode = await transaction.findQrCode(parsed.data.qrCodeId);
       if (!qrCode) throw new AssignmentDomainError(failure("QR_NOT_FOUND", "QR kartı bulunamadı."));
-      if (qrCode.status !== QrCodeStatus.CREATED || qrCode.assigned) {
+      if (
+        qrCode.status !== QrCodeStatus.CREATED
+        || qrCode.archivedAt
+        || qrCode.assigned
+      ) {
         throw new AssignmentDomainError(failure("QR_NOT_AVAILABLE", "QR kartı artık atama için uygun değil."));
       }
 

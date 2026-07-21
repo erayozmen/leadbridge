@@ -8,9 +8,18 @@ vi.mock("server-only", () => ({}));
 const token = "leadbridge-public-token";
 
 function dependencies(
-  record: { status: QrCodeStatus; hasAssignedVrRecord: boolean; hasRegistration: boolean } | null,
+  record: {
+    status: QrCodeStatus;
+    archived?: boolean;
+    hasAssignedVrRecord: boolean;
+    hasRegistration: boolean;
+  } | null,
 ): PublicQrStatusDependencies {
-  return { findByTokenHash: vi.fn(async () => record) };
+  return {
+    findByTokenHash: vi.fn(async () => record
+      ? { ...record, archived: record.archived ?? false }
+      : null),
+  };
 }
 
 describe("getPublicQrStatus", () => {
@@ -28,6 +37,14 @@ describe("getPublicQrStatus", () => {
   });
   it("returns DISABLED for a disabled QR", async () => {
     await expect(getPublicQrStatus(token, dependencies({ status: QrCodeStatus.DISABLED, hasAssignedVrRecord: false, hasRegistration: false }))).resolves.toBe("DISABLED");
+  });
+  it("returns DISABLED for an archived QR even if its status is inconsistent", async () => {
+    await expect(getPublicQrStatus(token, dependencies({
+      status: QrCodeStatus.ASSIGNED,
+      archived: true,
+      hasAssignedVrRecord: true,
+      hasRegistration: false,
+    }))).resolves.toBe("DISABLED");
   });
   it("returns NOT_FOUND for an unknown token", async () => {
     await expect(getPublicQrStatus(token, dependencies(null))).resolves.toBe("NOT_FOUND");

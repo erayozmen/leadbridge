@@ -16,6 +16,7 @@ export type PublicQrStatus =
 
 type PublicQrRecord = {
   status: QrCodeStatus;
+  archived: boolean;
   hasAssignedVrRecord: boolean;
   hasRegistration: boolean;
 };
@@ -32,6 +33,7 @@ async function getDefaultDependencies(): Promise<PublicQrStatusDependencies> {
         where: { tokenHash },
         select: {
           status: true,
+          archivedAt: true,
           assignedVrRecord: { select: { id: true } },
           qrRegistration: { select: { id: true } },
         },
@@ -39,6 +41,7 @@ async function getDefaultDependencies(): Promise<PublicQrStatusDependencies> {
       return qrCode
         ? {
             status: qrCode.status,
+            archived: Boolean(qrCode.archivedAt),
             hasAssignedVrRecord: Boolean(qrCode.assignedVrRecord),
             hasRegistration: Boolean(qrCode.qrRegistration),
           }
@@ -58,7 +61,7 @@ export async function getPublicQrStatus(
     const resolved = dependencies ?? (await getDefaultDependencies());
     const qrCode = await resolved.findByTokenHash(hashQrToken(parsedToken.data));
     if (!qrCode) return "NOT_FOUND";
-    if (qrCode.status === QrCodeStatus.DISABLED) return "DISABLED";
+    if (qrCode.archived || qrCode.status === QrCodeStatus.DISABLED) return "DISABLED";
     if (qrCode.status === QrCodeStatus.USED || qrCode.hasRegistration) return "ALREADY_USED";
     if (qrCode.status !== QrCodeStatus.ASSIGNED || !qrCode.hasAssignedVrRecord) return "NOT_ASSIGNED";
     return "AVAILABLE";

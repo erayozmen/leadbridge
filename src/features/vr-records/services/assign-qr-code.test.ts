@@ -8,7 +8,13 @@ vi.mock("server-only", () => ({}));
 
 type Options = {
   vrRecord?: { id: string; assignedQrCodeId: string | null } | null;
-  qrCode?: { id: string; serialNumber: string; status: QrCodeStatus; assigned: boolean } | null;
+  qrCode?: {
+    id: string;
+    serialNumber: string;
+    status: QrCodeStatus;
+    archivedAt: Date | null;
+    assigned: boolean;
+  } | null;
   qrCount?: number;
   vrCount?: number;
   transactionError?: unknown;
@@ -17,7 +23,13 @@ type Options = {
 function dependencies(options: Options = {}) {
   const transaction = {
     findVrRecord: vi.fn(async () => options.vrRecord === undefined ? { id: "vr_1", assignedQrCodeId: null } : options.vrRecord),
-    findQrCode: vi.fn(async () => options.qrCode === undefined ? { id: "qr_1", serialNumber: "LB-000001", status: QrCodeStatus.CREATED, assigned: false } : options.qrCode),
+    findQrCode: vi.fn(async () => options.qrCode === undefined ? {
+      id: "qr_1",
+      serialNumber: "LB-000001",
+      status: QrCodeStatus.CREATED,
+      archivedAt: null,
+      assigned: false,
+    } : options.qrCode),
     claimQrCode: vi.fn(async () => options.qrCount ?? 1),
     attachQrToVrRecord: vi.fn(async () => options.vrCount ?? 1),
   };
@@ -57,8 +69,27 @@ describe("assignQrCode", () => {
     await expect(assignQrCode(input, dependencies({ vrRecord: { id: "vr_1", assignedQrCodeId: "qr_old" } }).deps)).resolves.toMatchObject({ ok: false, code: "VR_ALREADY_HAS_QR" });
   });
   it.each([QrCodeStatus.ASSIGNED, QrCodeStatus.USED, QrCodeStatus.DISABLED])("rejects a %s QR", async (status) => {
-    const qrCode = { id: "qr_1", serialNumber: "LB-000001", status, assigned: status === QrCodeStatus.ASSIGNED };
+    const qrCode = {
+      id: "qr_1",
+      serialNumber: "LB-000001",
+      status,
+      archivedAt: null,
+      assigned: status === QrCodeStatus.ASSIGNED,
+    };
     await expect(assignQrCode(input, dependencies({ qrCode }).deps)).resolves.toMatchObject({ ok: false, code: "QR_NOT_AVAILABLE" });
+  });
+  it("rejects an archived CREATED QR", async () => {
+    const qrCode = {
+      id: "qr_1",
+      serialNumber: "LB-000001",
+      status: QrCodeStatus.CREATED,
+      archivedAt: new Date(),
+      assigned: false,
+    };
+    await expect(assignQrCode(input, dependencies({ qrCode }).deps)).resolves.toMatchObject({
+      ok: false,
+      code: "QR_NOT_AVAILABLE",
+    });
   });
   it("updates QR and VR within the transaction", async () => {
     const { deps, transaction } = dependencies();

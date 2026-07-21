@@ -24,6 +24,7 @@ type Options = {
   createError?: unknown;
   schoolFound?: boolean;
   schoolStatus?: SchoolStatus;
+  archived?: boolean;
 };
 
 function createMockPrisma(options: Options = {}) {
@@ -35,6 +36,7 @@ function createMockPrisma(options: Options = {}) {
       : {
           id: "qr_1",
           status: state.status,
+          archivedAt: options.archived ? new Date() : null,
           qrRegistration: options.existingRegistration ? { id: "registration_old" } : null,
           assignedVrRecord: options.linked === false ? null : { id: "vr_1" },
         },
@@ -89,6 +91,15 @@ describe("createQrRegistration", () => {
   });
   it.each([[QrCodeStatus.USED, "QR_ALREADY_USED"], [QrCodeStatus.DISABLED, "QR_DISABLED"]] as const)("rejects %s", async (status, code) => {
     await expect(createQrRegistration(validInput, createMockPrisma({ status }).prisma)).resolves.toMatchObject({ ok: false, code });
+  });
+  it("rejects an archived QR without changing status", async () => {
+    const mock = createMockPrisma({ archived: true });
+    await expect(createQrRegistration(validInput, mock.prisma)).resolves.toMatchObject({
+      ok: false,
+      code: "QR_DISABLED",
+    });
+    expect(mock.calls.updateMany).not.toHaveBeenCalled();
+    expect(mock.state.status).toBe(QrCodeStatus.ASSIGNED);
   });
   it("rejects an unknown token", async () => {
     await expect(createQrRegistration(validInput, createMockPrisma({ found: false }).prisma)).resolves.toMatchObject({ ok: false, code: "QR_NOT_FOUND" });

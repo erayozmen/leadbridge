@@ -19,7 +19,7 @@ async function getDefaultDependencies(): Promise<DisableQrCodeDependencies> {
     requireAdmin,
     async disableCreated(id) {
       const result = await prisma.qrCode.updateMany({
-        where: { id, status: QrCodeStatus.CREATED },
+        where: { id, status: QrCodeStatus.CREATED, archivedAt: null },
         data: { status: QrCodeStatus.DISABLED },
       });
       return result.count;

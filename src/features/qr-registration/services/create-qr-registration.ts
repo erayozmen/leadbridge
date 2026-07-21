@@ -74,6 +74,7 @@ async function createRegistrationInTransaction(
       select: {
         id: true,
         status: true,
+        archivedAt: true,
         qrRegistration: {
           select: { id: true },
         },
@@ -98,6 +99,12 @@ async function createRegistrationInTransaction(
       );
     }
 
+    if (qrCode.archivedAt) {
+      throw new QrRegistrationDomainError(
+        failure("QR_DISABLED", "This QR code is archived."),
+      );
+    }
+
     if (qrCode.status !== QrCodeStatus.ASSIGNED) {
       throw new QrRegistrationDomainError(
         mapQrStatusToFailure(qrCode.status),
@@ -119,6 +126,7 @@ async function createRegistrationInTransaction(
       where: {
         id: qrCode.id,
         status: QrCodeStatus.ASSIGNED,
+        archivedAt: null,
         assignedVrRecord: { isNot: null },
       },
       data: {
