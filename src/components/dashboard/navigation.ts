@@ -2,13 +2,14 @@ export type DashboardRole = "ADMIN" | "STAFF";
 
 export type DashboardNavItem = {
   label: string;
-  icon: "overview" | "students" | "vr" | "qr" | "attendance" | "course" | "reports" | "users";
-  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/schools" | "/dashboard/course-enrollments" | "/dashboard/reports" | "/dashboard/audit-logs" | "/dashboard/users";
+  icon: "overview" | "students" | "vr" | "qr" | "attendance" | "course" | "reports" | "users" | "events";
+  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/schools" | "/dashboard/course-enrollments" | "/dashboard/reports" | "/dashboard/audit-logs" | "/dashboard/users" | "/dashboard/events";
   comingSoon?: boolean;
 };
 
 const adminNavigation: DashboardNavItem[] = [
   { label: "Genel Bakış", icon: "overview", href: "/dashboard" },
+  { label: "Etkinlikler", icon: "events", href: "/dashboard/events" },
   { label: "VR Kaydı", icon: "vr", href: "/dashboard/vr-records/new" },
   { label: "VR İzleyenler", icon: "vr", href: "/dashboard/vr-records" },
   { label: "QR Kayıtları", icon: "qr", href: "/dashboard/qr-registrations" },
