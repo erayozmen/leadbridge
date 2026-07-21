@@ -1,0 +1,10 @@
+"use client";
+
+import { Upload } from "lucide-react";
+import { useState,useTransition } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { importVrRecordsAction } from "@/features/vr-records/actions/import-vr-records-action";
+
+type Result=Awaited<ReturnType<typeof importVrRecordsAction>>;
+export function VrImportForm(){const[file,setFile]=useState<File|null>(null);const[result,setResult]=useState<Result|null>(null);const[pending,startTransition]=useTransition();const run=(commit:boolean)=>{if(!file)return;const data=new FormData();data.set("file",file);if(commit)data.set("commit","true");startTransition(async()=>setResult(await importVrRecordsAction(data)));};return <div className="grid gap-5"><div className="grid gap-2"><label htmlFor="vr-csv" className="text-sm font-medium">CSV dosyası</label><Input id="vr-csv" type="file" accept=".csv,text/csv" onChange={event=>{setFile(event.target.files?.[0]??null);setResult(null);}} disabled={pending}/><p className="text-xs text-muted-foreground">Başlıklar: firstName, lastName, school, phone. En fazla 500 satır ve 2 MB.</p></div><div className="flex gap-2"><Button type="button" onClick={()=>run(false)} disabled={!file||pending}><Upload/>Önizle</Button>{result?.ok&&result.preview?<Button type="button" onClick={()=>run(true)} disabled={pending}>Onayla ve içe aktar</Button>:null}</div>{result?<div role="status" className="rounded-md border p-4"><p className="font-medium">{result.ok?`${result.validCount} geçerli kayıt bulundu.`:result.message}</p>{!result.ok&&result.errors.length?<ul className="mt-3 max-h-64 overflow-auto text-sm text-destructive">{result.errors.map(error=><li key={`${error.rowNumber}-${error.message}`}>Satır {error.rowNumber}: {error.message}</li>)}</ul>:null}{result.ok&&result.rows.length?<div className="mt-3 max-h-64 overflow-auto text-sm">{result.rows.map(row=><p key={row.rowNumber}>{row.rowNumber}. {row.firstName} {row.lastName} · {row.school}</p>)}</div>:null}</div>:null}</div>;}

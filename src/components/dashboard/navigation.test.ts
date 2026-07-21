@@ -7,7 +7,7 @@ describe("dashboard navigation", () => {
     const labels = getDashboardNavigation("ADMIN").map((item) => item.label);
 
     expect(labels).toContain("Genel Bakış");
-    expect(labels.filter((label) => label.startsWith("VR"))).toEqual(["VR Kaydı", "VR İzleyenler"]);
+    expect(labels.filter((label) => label.startsWith("VR"))).toEqual(["VR Kaydı", "VR CSV İçe Aktar", "VR İzleyenler"]);
     expect(labels).toContain("Raporlar");
     expect(labels).toContain("Kullanıcılar");
     expect(labels).toContain("Okullar");
