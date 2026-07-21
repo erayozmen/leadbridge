@@ -43,12 +43,22 @@ export async function getDashboardOverviewSummary(
     totalQrRegistrations,
     attendedRegistrations,
     courseEnrollments,
+    assignedWithoutRegistration,
+    registeredNotAttended,
+    attendedNotEnrolled,
+    unmatchedRegistrations,
+    unmatchedVrRecords,
   ] = await Promise.all([
     resolved.countVrRecords(totalVrRecordsWhere),
     resolved.countQrCodes(distributedQrCodesWhere),
     resolved.countQrRegistrations(totalQrRegistrationsWhere),
     resolved.countQrRegistrations(attendedRegistrationsWhere),
     resolved.countQrRegistrations(courseEnrollmentsWhere),
+    resolved.countQrCodes({ status: "ASSIGNED", qrRegistration: { is: null }, archivedAt: null }),
+    resolved.countQrRegistrations({ attendedEvent: false }),
+    resolved.countQrRegistrations({ attendedEvent: true, enrolledCourse: false }),
+    resolved.countQrRegistrations({ studentMatch: { is: null } }),
+    resolved.countVrRecords({ studentMatch: { is: null } }),
   ]);
 
   return {
@@ -57,5 +67,10 @@ export async function getDashboardOverviewSummary(
     totalQrRegistrations,
     attendedRegistrations,
     courseEnrollments,
+    assignedWithoutRegistration,
+    registeredNotAttended,
+    attendedNotEnrolled,
+    unmatchedRegistrations,
+    unmatchedVrRecords,
   };
 }

@@ -12,13 +12,18 @@ const summary: DashboardOverviewSummary = {
   totalQrRegistrations: 33,
   attendedRegistrations: 44,
   courseEnrollments: 55,
+  assignedWithoutRegistration: 6,
+  registeredNotAttended: 7,
+  attendedNotEnrolled: 8,
+  unmatchedRegistrations: 9,
+  unmatchedVrRecords: 10,
 };
 
 describe("admin overview", () => {
   it("uses one metric model for cards and funnel", () => {
     expect(buildDashboardOverviewMetrics(summary).map(({ value }) => value)).toEqual([11, 22, 33, 44, 55]);
     const html = renderToStaticMarkup(<AdminOverview summary={summary} />);
-    for (const value of Object.values(summary)) {
+    for (const value of [11, 22, 33, 44, 55]) {
       expect(html.match(new RegExp(`>${value}<`, "g"))).toHaveLength(2);
     }
   });

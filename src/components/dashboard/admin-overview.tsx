@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import Link from "next/link";
 import type { DashboardOverviewSummary } from "@/features/reports/types/dashboard-overview-summary";
 
 export type OverviewMetric = {
@@ -57,6 +58,21 @@ export function AdminOverview({ summary }: { summary: DashboardOverviewSummary }
             </CardContent>
           </Card>
         ))}
+      </section>
+
+      <section className="mt-6" aria-labelledby="attention-title">
+        <Card className="rounded-lg shadow-none">
+          <CardHeader><h2 id="attention-title" className="font-semibold">Dikkat gerektiren kayıtlar</h2><CardDescription>Operasyon akışında tamamlanmayı bekleyen kayıtlar</CardDescription></CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ["Atandı, form yok", summary.assignedWithoutRegistration, "/dashboard/qr-codes?status=ASSIGNED"],
+              ["Form var, katılım yok", summary.registeredNotAttended, "/dashboard/attendance?attendance=not-attended"],
+              ["Katıldı, kurs yok", summary.attendedNotEnrolled, "/dashboard/course-enrollments?attendance=attended&enrollment=not-enrolled"],
+              ["Eşleşmemiş QR kaydı", summary.unmatchedRegistrations, "/dashboard/qr-registrations?matchStatus=unmatched"],
+              ["Eşleşmemiş VR kaydı", summary.unmatchedVrRecords, "/dashboard/vr-records?matchStatus=unmatched"],
+            ].map(([label, value, href]) => <Link key={String(label)} href={String(href)} className="rounded-md border p-4 transition-colors hover:bg-muted"><span className="text-sm text-muted-foreground">{label}</span><strong className="mt-2 block text-2xl tabular-nums">{value}</strong></Link>)}
+          </CardContent>
+        </Card>
       </section>
 
       <section className="mt-6" aria-labelledby="conversion-funnel-title">
