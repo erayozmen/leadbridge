@@ -47,6 +47,9 @@ Supabase authentication alone does not grant application access. Every authentic
 - Mobile QR attendance scanner with manual fallback
 - Provider timeout, retry, rate-limit, and unavailable boundaries
 - Public registration and scanner mutation rate limiting
+- Multi-event lifecycle management with server-validated active event context
+- Event-scoped operational records, dashboard metrics, and reports
+- Persistent per-user notifications with read/unread state
 
 ## Local Setup
 
@@ -158,17 +161,29 @@ LeadBridge records these administrator-only reversals:
 
 Each reversal requires a trimmed reason of 10 to 500 characters. The domain mutation and AuditLog insert run in the same Prisma transaction, so an audit failure rolls back the mutation. Audit payloads contain only operational identifiers and changed state; QR tokens, hashes, student personal data, auth data, raw requests, and raw errors are excluded.
 
+## Events And Notifications
+
+Event statuses advance in one direction: `DRAFT` to `ACTIVE`, `ACTIVE` to
+`COMPLETED`, and `COMPLETED` to `ARCHIVED`. Operational writes require a
+server-validated selected event. Public registration derives the event from
+the QR card and accepts only an `ACTIVE` event. Cross-event QR assignment and
+student matching are rejected.
+
+Notifications are persistent and user-scoped. Users can read or mark only
+their own notifications. Notification delivery is best-effort; AuditLog remains
+the mandatory transactional history for sensitive mutations. Review
+`docs/v1.2-production-rollout.md` before deploying the v1.2 migrations.
+
 ## MVP Scope
 
 LeadBridge MVP v1.0 covers the operational funnel from VR registration through QR registration, matching, attendance, course enrollment, and summary reporting for ADMIN and STAFF roles.
 
 The following remain outside the MVP:
 
-- Multi-event and Event domain modeling
 - Live language-school provider integration, import, and synchronization
 - Audit history UI and exports
 - Spreadsheet report exports
-- Notifications and invitation workflows
+- Email/push notifications and invitation workflows
 - Advanced user management
 - Row-level security architecture
 - Redis or additional caching infrastructure
