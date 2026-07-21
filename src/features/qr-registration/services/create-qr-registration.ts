@@ -73,7 +73,6 @@ async function createRegistrationInTransaction(
       where: { tokenHash },
       select: {
         id: true,
-        eventId: true,
         status: true,
         archivedAt: true,
         qrRegistration: {
@@ -148,7 +147,6 @@ async function createRegistrationInTransaction(
     const registration = await tx.qrRegistration.create({
       data: {
         qrCodeId: qrCode.id,
-        eventId: qrCode.eventId,
         firstName: data.firstName,
         lastName: data.lastName,
         guardianName: data.guardianName,

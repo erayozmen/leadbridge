@@ -15,13 +15,11 @@ type VrRecordCreateData = {
   schoolId: string;
   phone: string | null;
   createdByUserId: string;
-  eventId: string;
 };
 
 export type CreateVrRecordDependencies = {
   requireUser: () => Promise<AppUser>;
   findActiveSchool: (id: string) => Promise<{ id: string; name: string } | null>;
-  getActiveEventId?: () => Promise<string>;
   createRecord: (data: VrRecordCreateData) => Promise<{
     id: string;
     firstName: string;
@@ -33,16 +31,14 @@ export type CreateVrRecordDependencies = {
 };
 
 async function getDefaultDependencies(): Promise<CreateVrRecordDependencies> {
-  const [{ requireStaffOrAdmin }, { prisma }, { requireActiveEvent }] = await Promise.all([
+  const [{ requireStaffOrAdmin }, { prisma }] = await Promise.all([
     import("@/features/auth/server/auth"),
     import("@/lib/prisma"),
-    import("@/features/events/server/active-event"),
   ]);
 
   return {
     requireUser: requireStaffOrAdmin,
     findActiveSchool: (id) => prisma.school.findFirst({ where: { id, status: "ACTIVE" }, select: { id: true, name: true } }),
-    getActiveEventId: async () => (await requireActiveEvent()).id,
     createRecord(data) {
       return prisma.vrRecord.create({
         data,
@@ -77,7 +73,6 @@ export async function createVrRecord(
   try {
     const resolved = dependencies ?? (await getDefaultDependencies());
     const user = await resolved.requireUser();
-    const eventId = await resolved.getActiveEventId?.() ?? "test-event";
     const school = await resolved.findActiveSchool(parsedInput.data.schoolId);
     if (!school) return { ok: false, code: "INVALID_INPUT", message: "Seçilen okul aktif değil veya bulunamadı.", fieldErrors: { schoolId: ["Aktif bir okul seçin."] } };
     const record = await resolved.createRecord({
@@ -87,7 +82,6 @@ export async function createVrRecord(
       schoolId: school.id,
       school: school.name,
       createdByUserId: user.id,
-      eventId,
     });
 
     return { ok: true, record };

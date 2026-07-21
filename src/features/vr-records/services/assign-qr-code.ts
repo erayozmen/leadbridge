@@ -12,14 +12,13 @@ const assignmentSchema = z.object({
 });
 
 type AssignmentTransaction = {
-  findVrRecord: (id: string) => Promise<{ id: string; eventId?: string; assignedQrCodeId: string | null } | null>;
+  findVrRecord: (id: string) => Promise<{ id: string; assignedQrCodeId: string | null } | null>;
   findQrCode: (id: string) => Promise<{
     id: string;
     serialNumber: string;
     status: QrCodeStatus;
     archivedAt: Date | null;
     assigned: boolean;
-    eventId?: string;
   } | null>;
   claimQrCode: (id: string, assignedAt: Date) => Promise<number>;
   attachQrToVrRecord: (vrRecordId: string, qrCodeId: string) => Promise<number>;
@@ -53,7 +52,7 @@ async function getDefaultDependencies(): Promise<AssignQrCodeDependencies> {
         callback({
           findVrRecord: (id) => tx.vrRecord.findUnique({
             where: { id },
-            select: { id: true, eventId: true, assignedQrCodeId: true },
+            select: { id: true, assignedQrCodeId: true },
           }),
           async findQrCode(id) {
             const qrCode = await tx.qrCode.findUnique({
@@ -63,7 +62,6 @@ async function getDefaultDependencies(): Promise<AssignQrCodeDependencies> {
                 serialNumber: true,
                 status: true,
                 archivedAt: true,
-                eventId: true,
                 assignedVrRecord: { select: { id: true } },
               },
             });
@@ -74,7 +72,6 @@ async function getDefaultDependencies(): Promise<AssignQrCodeDependencies> {
                   status: qrCode.status,
                   archivedAt: qrCode.archivedAt,
                   assigned: Boolean(qrCode.assignedVrRecord),
-                  eventId: qrCode.eventId,
                 }
               : null;
           },
@@ -126,7 +123,6 @@ export async function assignQrCode(
 
       const qrCode = await transaction.findQrCode(parsed.data.qrCodeId);
       if (!qrCode) throw new AssignmentDomainError(failure("QR_NOT_FOUND", "QR kartı bulunamadı."));
-      if (vrRecord.eventId && qrCode.eventId && vrRecord.eventId !== qrCode.eventId) throw new AssignmentDomainError(failure("QR_NOT_AVAILABLE", "QR kartı farklı bir etkinliğe ait."));
       if (
         qrCode.status !== QrCodeStatus.CREATED
         || qrCode.archivedAt
