@@ -1,6 +1,6 @@
 import "server-only";
 
-import { QrCodeStatus } from "@prisma/client";
+import { EventStatus, QrCodeStatus } from "@prisma/client";
 
 import { hashQrToken } from "@/features/qr-registration/lib/hash-qr-token";
 import { qrRegistrationSchema } from "@/features/qr-registration/schemas/qr-registration.schema";
@@ -19,6 +19,7 @@ type PublicQrRecord = {
   archived: boolean;
   hasAssignedVrRecord: boolean;
   hasRegistration: boolean;
+  eventStatus?: EventStatus;
 };
 
 export type PublicQrStatusDependencies = {
@@ -33,6 +34,7 @@ async function getDefaultDependencies(): Promise<PublicQrStatusDependencies> {
         where: { tokenHash },
         select: {
           status: true,
+          event: { select: { status: true } },
           archivedAt: true,
           assignedVrRecord: { select: { id: true } },
           qrRegistration: { select: { id: true } },
@@ -44,6 +46,7 @@ async function getDefaultDependencies(): Promise<PublicQrStatusDependencies> {
             archived: Boolean(qrCode.archivedAt),
             hasAssignedVrRecord: Boolean(qrCode.assignedVrRecord),
             hasRegistration: Boolean(qrCode.qrRegistration),
+            eventStatus: qrCode.event.status,
           }
         : null;
     },
@@ -61,6 +64,7 @@ export async function getPublicQrStatus(
     const resolved = dependencies ?? (await getDefaultDependencies());
     const qrCode = await resolved.findByTokenHash(hashQrToken(parsedToken.data));
     if (!qrCode) return "NOT_FOUND";
+    if ((qrCode.eventStatus ?? EventStatus.ACTIVE) !== EventStatus.ACTIVE) return "DISABLED";
     if (qrCode.archived || qrCode.status === QrCodeStatus.DISABLED) return "DISABLED";
     if (qrCode.status === QrCodeStatus.USED || qrCode.hasRegistration) return "ALREADY_USED";
     if (qrCode.status !== QrCodeStatus.ASSIGNED || !qrCode.hasAssignedVrRecord) return "NOT_ASSIGNED";

@@ -8,8 +8,8 @@ import type { CreateStudentMatchResult } from "@/features/student-matching/types
 
 const schema = z.object({ vrRecordId: z.string().trim().min(1).max(100), qrRegistrationId: z.string().trim().min(1).max(100) });
 type Tx = {
-  findVr: (id: string) => Promise<{ id: string; matched: boolean } | null>;
-  findRegistration: (id: string) => Promise<{ id: string; matched: boolean } | null>;
+  findVr: (id: string) => Promise<{ id: string; eventId?: string; matched: boolean } | null>;
+  findRegistration: (id: string) => Promise<{ id: string; eventId?: string; matched: boolean } | null>;
   create: (data: { vrRecordId: string; qrRegistrationId: string; matchedByUserId: string; matchedAt: Date }) => Promise<{ id: string; matchedAt: Date }>;
 };
 export type CreateStudentMatchDependencies = {
@@ -28,12 +28,12 @@ async function defaults(): Promise<CreateStudentMatchDependencies> {
     requireAdmin,
     runTransaction: (callback) => prisma.$transaction((tx) => callback({
       async findVr(id) {
-        const record = await tx.vrRecord.findUnique({ where: { id }, select: { id: true, studentMatch: { select: { id: true } } } });
-        return record ? { id: record.id, matched: Boolean(record.studentMatch) } : null;
+        const record = await tx.vrRecord.findUnique({ where: { id }, select: { id: true, eventId: true, studentMatch: { select: { id: true } } } });
+        return record ? { id: record.id, eventId: record.eventId, matched: Boolean(record.studentMatch) } : null;
       },
       async findRegistration(id) {
-        const record = await tx.qrRegistration.findUnique({ where: { id }, select: { id: true, studentMatch: { select: { id: true } } } });
-        return record ? { id: record.id, matched: Boolean(record.studentMatch) } : null;
+        const record = await tx.qrRegistration.findUnique({ where: { id }, select: { id: true, eventId: true, studentMatch: { select: { id: true } } } });
+        return record ? { id: record.id, eventId: record.eventId, matched: Boolean(record.studentMatch) } : null;
       },
       create: (data) => tx.studentMatch.create({ data, select: { id: true, matchedAt: true } }),
     })),
@@ -57,6 +57,7 @@ export async function createStudentMatch(input: { vrRecordId: string; qrRegistra
       const registration = await tx.findRegistration(parsed.data.qrRegistrationId);
       if (!registration) throw new DomainError(failure("QR_REGISTRATION_NOT_FOUND", "QR kaydı bulunamadı."));
       if (registration.matched) throw new DomainError(failure("QR_REGISTRATION_ALREADY_MATCHED", "QR kaydı zaten eşleştirilmiş."));
+      if (vr.eventId !== registration.eventId) throw new DomainError(failure("MATCH_CONFLICT", "Kayıtlar farklı etkinliklere ait."));
       return tx.create({ vrRecordId: vr.id, qrRegistrationId: registration.id, matchedByUserId: user.id, matchedAt: new Date() });
     });
     return { ok: true, match };

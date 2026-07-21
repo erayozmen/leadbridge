@@ -13,8 +13,9 @@ export type MarkAttendanceDependencies = {
 const failure = (code: Exclude<AttendanceResult,{ok:true}>["code"],message:string)=>({ok:false as const,code,message});
 
 async function defaults():Promise<MarkAttendanceDependencies>{
-  const [{requireStaffOrAdmin},{prisma}]=await Promise.all([import("@/features/auth/server/auth"),import("@/lib/prisma")]);
-  return {requireUser:requireStaffOrAdmin,findRegistration:(id)=>prisma.qrRegistration.findUnique({where:{id},select:{id:true,attendedEvent:true}}),async updateIfNotAttended(id,data){return(await prisma.qrRegistration.updateMany({where:{id,attendedEvent:false},data})).count;}};
+  const [{requireStaffOrAdmin},{requireSelectedEvent},{prisma}]=await Promise.all([import("@/features/auth/server/auth"),import("@/features/events/server/event-context"),import("@/lib/prisma")]);
+  const event=await requireSelectedEvent({operational:true});
+  return {requireUser:requireStaffOrAdmin,findRegistration:(id)=>prisma.qrRegistration.findFirst({where:{id,eventId:event.id},select:{id:true,attendedEvent:true}}),async updateIfNotAttended(id,data){return(await prisma.qrRegistration.updateMany({where:{id,eventId:event.id,attendedEvent:false},data})).count;}};
 }
 
 export async function markAttendance(input:{qrRegistrationId:string},dependencies?:MarkAttendanceDependencies):Promise<AttendanceResult>{

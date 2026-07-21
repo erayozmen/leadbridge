@@ -3,15 +3,17 @@ import { requireAdmin } from "@/features/auth/server/auth";
 import { GenerateQrCodesForm } from "@/features/qr-codes/components/generate-qr-codes-form";
 import { QrCodeList } from "@/features/qr-codes/components/qr-code-list";
 import { listQrCodes } from "@/features/qr-codes/queries/list-qr-codes";
+import { requireSelectedEvent } from "@/features/events/server/event-context";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 export default async function QrCodesPage({ searchParams }: { searchParams: SearchParams }) {
   await requireAdmin();
+  const event = await requireSelectedEvent();
   const params = await searchParams;
   const filters = { serialNumber: first(params.serialNumber), status: first(params.status), createdFrom: first(params.createdFrom), createdTo: first(params.createdTo), archive: first(params.archive), sort: first(params.sort), pageSize: Number(first(params.pageSize)) };
-  const result = await listQrCodes({ ...filters, page: Number(first(params.page)) });
+  const result = await listQrCodes({ ...filters, eventId: event.id, page: Number(first(params.page)) });
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-semibold">QR Kartları</h1><p className="mt-2 text-muted-foreground">Toplu kart üretin, CSV çıktısını indirin ve QR durumlarını yönetin.</p>

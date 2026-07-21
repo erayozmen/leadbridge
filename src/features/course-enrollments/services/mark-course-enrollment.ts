@@ -13,11 +13,12 @@ export type MarkCourseEnrollmentDependencies = {
 const failure = (code: Exclude<CourseEnrollmentResult, { ok: true }>["code"], message: string) => ({ ok: false as const, code, message });
 
 async function defaults(): Promise<MarkCourseEnrollmentDependencies> {
-  const [{ requireAdmin }, { prisma }] = await Promise.all([import("@/features/auth/server/auth"), import("@/lib/prisma")]);
+  const [{ requireAdmin }, { requireSelectedEvent }, { prisma }] = await Promise.all([import("@/features/auth/server/auth"), import("@/features/events/server/event-context"), import("@/lib/prisma")]);
+  const event = await requireSelectedEvent({ operational: true });
   return {
     requireAdmin,
-    findRegistration: (id) => prisma.qrRegistration.findUnique({ where: { id }, select: { id: true, enrolledCourse: true } }),
-    async updateIfNotEnrolled(id, data) { return (await prisma.qrRegistration.updateMany({ where: { id, enrolledCourse: false }, data })).count; },
+    findRegistration: (id) => prisma.qrRegistration.findFirst({ where: { id, eventId: event.id }, select: { id: true, enrolledCourse: true } }),
+    async updateIfNotEnrolled(id, data) { return (await prisma.qrRegistration.updateMany({ where: { id, eventId: event.id, enrolledCourse: false }, data })).count; },
   };
 }
 

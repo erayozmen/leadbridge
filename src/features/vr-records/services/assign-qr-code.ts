@@ -12,9 +12,10 @@ const assignmentSchema = z.object({
 });
 
 type AssignmentTransaction = {
-  findVrRecord: (id: string) => Promise<{ id: string; assignedQrCodeId: string | null } | null>;
+  findVrRecord: (id: string) => Promise<{ id: string; eventId?: string; assignedQrCodeId: string | null } | null>;
   findQrCode: (id: string) => Promise<{
     id: string;
+    eventId?: string;
     serialNumber: string;
     status: QrCodeStatus;
     archivedAt: Date | null;
@@ -52,13 +53,14 @@ async function getDefaultDependencies(): Promise<AssignQrCodeDependencies> {
         callback({
           findVrRecord: (id) => tx.vrRecord.findUnique({
             where: { id },
-            select: { id: true, assignedQrCodeId: true },
+            select: { id: true, eventId: true, assignedQrCodeId: true },
           }),
           async findQrCode(id) {
             const qrCode = await tx.qrCode.findUnique({
               where: { id },
               select: {
                 id: true,
+                eventId: true,
                 serialNumber: true,
                 status: true,
                 archivedAt: true,
@@ -68,6 +70,7 @@ async function getDefaultDependencies(): Promise<AssignQrCodeDependencies> {
             return qrCode
               ? {
                   id: qrCode.id,
+                  eventId: qrCode.eventId,
                   serialNumber: qrCode.serialNumber,
                   status: qrCode.status,
                   archivedAt: qrCode.archivedAt,
@@ -129,6 +132,12 @@ export async function assignQrCode(
         || qrCode.assigned
       ) {
         throw new AssignmentDomainError(failure("QR_NOT_AVAILABLE", "QR kartı artık atama için uygun değil."));
+      }
+
+      if (vrRecord.eventId !== qrCode.eventId) {
+        throw new AssignmentDomainError(
+          failure("QR_NOT_AVAILABLE", "QR kartı farklı bir etkinliğe ait."),
+        );
       }
 
       const assignedAt = new Date();

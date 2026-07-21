@@ -10,6 +10,7 @@ import { type GenerateQrCodesInput, generateQrCodesSchema } from "@/features/qr-
 import type { GenerateQrCodesResult } from "@/features/qr-codes/types/qr-code-result";
 
 type QrCreateData = {
+  eventId: string;
   serialNumber: string;
   tokenHash: string;
   status: QrCodeStatus;
@@ -26,6 +27,7 @@ export type GenerateQrCodesDependencies = {
   requireAdmin: () => Promise<unknown>;
   getAppUrl: () => string;
   generateToken: () => string;
+  getOperationalEventId: () => Promise<string>;
   runTransaction: <T>(callback: (transaction: QrTransaction) => Promise<T>) => Promise<T>;
 };
 
@@ -47,14 +49,17 @@ function isRetryableConflict(error: unknown): boolean {
 }
 
 async function getDefaultDependencies(): Promise<GenerateQrCodesDependencies> {
-  const [{ requireAdmin }, { getPublicAppUrl }, { prisma }] = await Promise.all([
+  const [{ requireAdmin }, { requireSelectedEvent }, { getPublicAppUrl }, { prisma }] = await Promise.all([
     import("@/features/auth/server/auth"),
+    import("@/features/events/server/event-context"),
     import("@/lib/env"),
     import("@/lib/prisma"),
   ]);
 
   return {
     requireAdmin,
+    getOperationalEventId: async () =>
+      (await requireSelectedEvent({ operational: true })).id,
     getAppUrl: getPublicAppUrl,
     generateToken: generateQrToken,
     runTransaction(callback) {
@@ -104,6 +109,17 @@ export async function generateQrCodes(
     return { ok: false, code: "CONFIG_MISSING", message: "Uygulama adresi yapılandırılmadığı için QR kartları üretilemedi." };
   }
 
+  let eventId: string;
+  try {
+    eventId = await resolved.getOperationalEventId();
+  } catch {
+    return {
+      ok: false,
+      code: "CREATE_FAILED",
+      message: "QR üretimi için aktif bir etkinlik seçin.",
+    };
+  }
+
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
@@ -121,6 +137,7 @@ export async function generateQrCodes(
 
         await transaction.createMany(
           output.map(({ serialNumber, tokenHash }) => ({
+            eventId,
             serialNumber,
             tokenHash,
             status: QrCodeStatus.CREATED,

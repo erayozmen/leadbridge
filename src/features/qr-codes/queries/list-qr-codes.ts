@@ -6,6 +6,7 @@ import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-paginat
 export const QR_CODES_PAGE_SIZE = 25;
 
 export type QrCodeFilters = {
+  eventId?: string;
   serialNumber?: string;
   status?: string;
   createdFrom?: string;
@@ -65,6 +66,7 @@ export async function listQrCodes(filters: QrCodeFilters, dependencies?: ListQrC
   const page = parsePositivePage(filters.page), pageSize = parsePageSize(filters.pageSize), sort = parseSort(filters.sort, ["newest", "oldest", "serial-asc", "serial-desc"] as const, "newest");
   const archive = filters.archive === "archived" || filters.archive === "all" ? filters.archive : "active";
   const where: Prisma.QrCodeWhereInput = {
+    ...(filters.eventId ? { eventId: filters.eventId } : {}),
     ...(archive === "active" ? { archivedAt: null } : archive === "archived" ? { archivedAt: { not: null } } : {}),
     ...(serialNumber ? { serialNumber: { contains: serialNumber, mode: "insensitive" } } : {}),
     ...(status ? { status } : {}),

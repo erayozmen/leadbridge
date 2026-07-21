@@ -16,16 +16,19 @@ export type ReportSummaryDependencies = {
   countVrRecords: (where: Prisma.VrRecordWhereInput) => Promise<number>;
   countQrRegistrations: (where: Prisma.QrRegistrationWhereInput) => Promise<number>;
   countStudentMatches: (where: Prisma.StudentMatchWhereInput) => Promise<number>;
+  getEventId?: () => Promise<string>;
 };
 
 async function getDefaultDependencies(): Promise<ReportSummaryDependencies> {
-  const [{ requireAdmin }, { prisma }] = await Promise.all([
+  const [{ requireAdmin }, { requireSelectedEvent }, { prisma }] = await Promise.all([
     import("@/features/auth/server/auth"),
+    import("@/features/events/server/event-context"),
     import("@/lib/prisma"),
   ]);
 
   return {
     requireAdmin,
+    getEventId: async () => (await requireSelectedEvent()).id,
     countSchools: (where) => prisma.school.count({ where }),
     countQrCodes: (where) => prisma.qrCode.count({ where }),
     countVrRecords: (where) => prisma.vrRecord.count({ where }),
@@ -39,6 +42,8 @@ export async function getReportSummary(
 ): Promise<ReportSummary> {
   const resolved = dependencies ?? (await getDefaultDependencies());
   await resolved.requireAdmin();
+  const eventId = resolved.getEventId ? await resolved.getEventId() : undefined;
+  const event = eventId ? { eventId } : {};
 
   const [
     totalSchools,
@@ -56,18 +61,18 @@ export async function getReportSummary(
     courseEnrollments,
   ] = await Promise.all([
     resolved.countSchools({}),
-    resolved.countQrCodes({}),
-    resolved.countQrCodes({ status: QrCodeStatus.ASSIGNED }),
-    resolved.countQrCodes({ status: QrCodeStatus.USED }),
-    resolved.countQrCodes({ archivedAt: { not: null } }),
-    resolved.countVrRecords(totalVrRecordsWhere),
-    resolved.countQrRegistrations(totalQrRegistrationsWhere),
-    resolved.countStudentMatches({}),
-    resolved.countVrRecords({ studentMatch: { is: null } }),
-    resolved.countQrRegistrations({ studentMatch: { is: null } }),
-    resolved.countQrRegistrations(attendedRegistrationsWhere),
-    resolved.countQrRegistrations({ attendedEvent: false }),
-    resolved.countQrRegistrations(courseEnrollmentsWhere),
+    resolved.countQrCodes(event),
+    resolved.countQrCodes({ ...event, status: QrCodeStatus.ASSIGNED }),
+    resolved.countQrCodes({ ...event, status: QrCodeStatus.USED }),
+    resolved.countQrCodes({ ...event, archivedAt: { not: null } }),
+    resolved.countVrRecords({ ...totalVrRecordsWhere, ...event }),
+    resolved.countQrRegistrations({ ...totalQrRegistrationsWhere, ...event }),
+    resolved.countStudentMatches(eventId ? { vrRecord: { eventId } } : {}),
+    resolved.countVrRecords({ ...event, studentMatch: { is: null } }),
+    resolved.countQrRegistrations({ ...event, studentMatch: { is: null } }),
+    resolved.countQrRegistrations({ ...attendedRegistrationsWhere, ...event }),
+    resolved.countQrRegistrations({ ...event, attendedEvent: false }),
+    resolved.countQrRegistrations({ ...courseEnrollmentsWhere, ...event }),
   ]);
 
   return {

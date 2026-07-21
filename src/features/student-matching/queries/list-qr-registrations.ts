@@ -5,7 +5,7 @@ import { resolveSchoolDisplayName } from "@/features/schools/lib/normalize-schoo
 import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-pagination";
 
 export const REGISTRATIONS_PAGE_SIZE = 25;
-export type RegistrationFilters = { firstName?: string; lastName?: string; school?: string; matchStatus?: string; attendance?: string; enrollment?: string; registeredFrom?: string; registeredTo?: string; page?: number; pageSize?: number; sort?: string };
+export type RegistrationFilters = { eventId?: string; firstName?: string; lastName?: string; school?: string; matchStatus?: string; attendance?: string; enrollment?: string; registeredFrom?: string; registeredTo?: string; page?: number; pageSize?: number; sort?: string };
 export type RegistrationListItem = {
   id: string; firstName: string; lastName: string; guardianName: string; phone: string; school: string; schoolRelation: { name: string } | null; registeredAt: Date;
   qrCode: { serialNumber: string };
@@ -34,6 +34,7 @@ export async function listQrRegistrations(filters: RegistrationFilters, options:
   const attendance = filters.attendance === "attended" ? true : filters.attendance === "not-attended" ? false : undefined;
   const enrollment = filters.enrollment === "enrolled" ? true : filters.enrollment === "not-enrolled" ? false : undefined;
   const where: Prisma.QrRegistrationWhereInput = {
+    ...(filters.eventId ? { eventId: filters.eventId } : {}),
     ...(options.unmatchedOnly ? { studentMatch: null } : {}),
     ...(firstName ? { firstName: { contains: firstName, mode: "insensitive" } } : {}),
     ...(lastName ? { lastName: { contains: lastName, mode: "insensitive" } } : {}),
@@ -54,9 +55,9 @@ export async function listQrRegistrations(filters: RegistrationFilters, options:
   return { records: records.map((record) => ({ ...record, school: resolveSchoolDisplayName(record.schoolRelation, record.school) })), total, page, pageSize, sort, pageCount: Math.max(1, Math.ceil(total / pageSize)), hasFilters: Boolean(firstName || lastName || school || matchStatus || attendance !== undefined || enrollment !== undefined || sort !== "newest") };
 }
 
-export async function getVrMatchTarget(id: string) {
+export async function getVrMatchTarget(id: string, eventId?: string) {
   const { prisma } = await import("@/lib/prisma");
-  const record = await prisma.vrRecord.findUnique({ where: { id }, select: {
+  const record = await prisma.vrRecord.findFirst({ where: { id, ...(eventId ? { eventId } : {}) }, select: {
     id: true, firstName: true, lastName: true, school: true, phone: true,
     studentMatch: { select: { id: true, matchedAt: true, qrRegistration: { select: { firstName: true, lastName: true, school: true, schoolRelation: { select: { name: true } }, phone: true, guardianName: true, registeredAt: true, qrCode: { select: { serialNumber: true } } } } } },
   } });

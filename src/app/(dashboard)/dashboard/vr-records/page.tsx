@@ -2,12 +2,14 @@ import { Card } from "@/components/ui/card";
 import { requireStaffOrAdmin } from "@/features/auth/server/auth";
 import { VrRecordList } from "@/features/vr-records/components/vr-record-list";
 import { listVrRecordFilterOptions, listVrRecords } from "@/features/vr-records/queries/list-vr-records";
+import { requireSelectedEvent } from "@/features/events/server/event-context";
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 const firstValue = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
 
 export default async function VrRecordsPage({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireStaffOrAdmin();
+  const event = await requireSelectedEvent();
   const params = await searchParams;
   const filters = {
     firstName: firstValue(params.firstName), lastName: firstValue(params.lastName), schoolId: firstValue(params.schoolId),
@@ -16,7 +18,7 @@ export default async function VrRecordsPage({ searchParams }: { searchParams: Se
     sort: firstValue(params.sort), pageSize: Number(firstValue(params.pageSize)),
   };
   const [result, options] = await Promise.all([
-    listVrRecords({ ...filters, page: Number(firstValue(params.page)) }),
+    listVrRecords({ ...filters, eventId: event.id, page: Number(firstValue(params.page)) }),
     listVrRecordFilterOptions(),
   ]);
   return (
