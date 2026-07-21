@@ -1,0 +1,14 @@
+import { UserRole, UserStatus } from "@prisma/client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { requireAdmin } from "@/features/auth/server/auth";
+import { updateUserAccessAction } from "@/features/users/actions/user-actions";
+import { prisma } from "@/lib/prisma";
+
+export default async function UsersPage() {
+  const actor = await requireAdmin();
+  const users = await prisma.user.findMany({ select: { id: true, fullName: true, email: true, role: true, status: true, createdAt: true, updatedAt: true }, orderBy: { fullName: "asc" } });
+  return <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6"><h1 className="text-3xl font-semibold">Kullanıcılar</h1><p className="mt-2 text-muted-foreground">Uygulama rollerini ve hesap durumlarını güvenli biçimde yönetin.</p><Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none"><div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Kullanıcı</TableHead><TableHead>Rol</TableHead><TableHead>Durum</TableHead><TableHead>Oluşturulma</TableHead><TableHead>Yönetim</TableHead></TableRow></TableHeader><TableBody>{users.map(user=><TableRow key={user.id}><TableCell><span className="font-medium">{user.fullName}</span><br/><span className="text-xs text-muted-foreground">{user.email}</span></TableCell><TableCell>{user.role}</TableCell><TableCell>{user.status}</TableCell><TableCell>{user.createdAt.toLocaleDateString("tr-TR")}</TableCell><TableCell><div className="flex min-w-[28rem] gap-2"><form action={updateUserAccessAction} className="flex gap-2"><input type="hidden" name="userId" value={user.id}/><input type="hidden" name="kind" value="role"/><select name="value" defaultValue={user.role} className="h-9 rounded-md border bg-background px-2 text-sm">{Object.values(UserRole).map(role=><option key={role}>{role}</option>)}</select><Input name="reason" placeholder="İşlem nedeni (en az 10 karakter)" minLength={10} maxLength={500} required/><Button type="submit" variant="outline">Rolü güncelle</Button></form><form action={updateUserAccessAction} className="flex gap-2"><input type="hidden" name="userId" value={user.id}/><input type="hidden" name="kind" value="status"/><select name="value" defaultValue={user.status} disabled={user.id===actor.id} className="h-9 rounded-md border bg-background px-2 text-sm">{Object.values(UserStatus).map(status=><option key={status}>{status}</option>)}</select><Input name="reason" placeholder="İşlem nedeni" minLength={10} maxLength={500} required disabled={user.id===actor.id}/><Button type="submit" disabled={user.id===actor.id}>Durumu güncelle</Button></form></div></TableCell></TableRow>)}</TableBody></Table></div></Card></main>;
+}

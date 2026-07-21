@@ -4,6 +4,7 @@ export const AUDIT_ENTITY_TYPES = {
   QR_REGISTRATION: "QR_REGISTRATION",
   VR_RECORD: "VR_RECORD",
   SCHOOL: "SCHOOL",
+  USER: "USER",
 } as const;
 
 export type AuditEntityType =
