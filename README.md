@@ -39,6 +39,14 @@ Supabase authentication alone does not grant application access. Every authentic
 - Manual language-course enrollment and audited reversal
 - Live dashboard KPIs and administrator reports
 - Append-only AuditLog infrastructure
+- ADMIN AuditLog explorer with redacted JSON details
+- Audited ADMIN user role and status management
+- Filtered, UTF-8 and formula-injection-safe CSV exports
+- Configurable 25/50/100-row management lists
+- VR CSV import with preview, validation, duplicate detection, and atomic acceptance
+- Mobile QR attendance scanner with manual fallback
+- Provider timeout, retry, rate-limit, and unavailable boundaries
+- Public registration and scanner mutation rate limiting
 
 ## Local Setup
 
@@ -89,6 +97,8 @@ Do not add service-role keys, database passwords, or other secrets to tracked fi
 - Vercel deploys the GitHub `main` branch; Prisma Client is generated during `postinstall`.
 - Database migrations are reviewed and committed separately, then deployed through the controlled release process.
 - Verify Supabase backups, migration status, authentication, public QR registration, and ADMIN/STAFF permissions during every production acceptance cycle.
+- In-memory rate limiting provides a first server-instance boundary. A distributed Vercel-compatible rate-limit store is recommended before high-volume public campaigns.
+- Course-provider integration deliberately reports "not configured" until real credentials and a reviewed provider adapter are supplied.
 
 ## Prisma
 
