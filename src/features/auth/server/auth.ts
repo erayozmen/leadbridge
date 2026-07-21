@@ -1,6 +1,7 @@
 import "server-only";
 
 import { UserRole, UserStatus } from "@prisma/client";
+import { cache } from "react";
 import { AuthError, type AppUser, type AuthDependencies, type AuthUser } from "@/features/auth/types/auth";
 
 async function getDefaultDependencies(): Promise<AuthDependencies> {
@@ -45,14 +46,23 @@ export async function requireAuthenticatedUser(dependencies?: AuthDependencies):
   return authUser;
 }
 
-export async function requireActiveUser(dependencies?: AuthDependencies): Promise<AppUser> {
-  const resolved = await resolveDependencies(dependencies);
+async function resolveActiveUser(resolved: AuthDependencies): Promise<AppUser> {
   const authUser = await resolved.getAuthUser();
   if (!authUser) throw new AuthError("UNAUTHENTICATED");
   const appUser = await resolved.findAppUserByAuthUserId(authUser.id);
   if (!appUser) throw new AuthError("USER_NOT_PROVISIONED");
   if (appUser.status !== UserStatus.ACTIVE) throw new AuthError("USER_INACTIVE");
   return appUser;
+}
+
+const getDefaultActiveUser = cache(async () => (
+  resolveActiveUser(await getDefaultDependencies())
+));
+
+export async function requireActiveUser(dependencies?: AuthDependencies): Promise<AppUser> {
+  return dependencies
+    ? resolveActiveUser(dependencies)
+    : getDefaultActiveUser();
 }
 
 export async function requireAdmin(dependencies?: AuthDependencies): Promise<AppUser> {
