@@ -15,6 +15,7 @@ type QrCreateData = {
   status: QrCodeStatus;
   assignedAt: null;
   usedAt: null;
+  eventId: string;
 };
 
 type QrTransaction = {
@@ -26,6 +27,7 @@ export type GenerateQrCodesDependencies = {
   requireAdmin: () => Promise<unknown>;
   getAppUrl: () => string;
   generateToken: () => string;
+  getActiveEventId?: () => Promise<string>;
   runTransaction: <T>(callback: (transaction: QrTransaction) => Promise<T>) => Promise<T>;
 };
 
@@ -47,16 +49,18 @@ function isRetryableConflict(error: unknown): boolean {
 }
 
 async function getDefaultDependencies(): Promise<GenerateQrCodesDependencies> {
-  const [{ requireAdmin }, { getPublicAppUrl }, { prisma }] = await Promise.all([
+  const [{ requireAdmin }, { getPublicAppUrl }, { prisma }, { requireActiveEvent }] = await Promise.all([
     import("@/features/auth/server/auth"),
     import("@/lib/env"),
     import("@/lib/prisma"),
+    import("@/features/events/server/active-event"),
   ]);
 
   return {
     requireAdmin,
     getAppUrl: getPublicAppUrl,
     generateToken: generateQrToken,
+    getActiveEventId: async () => (await requireActiveEvent()).id,
     runTransaction(callback) {
       return prisma.$transaction(
         async (tx) =>
@@ -103,6 +107,8 @@ export async function generateQrCodes(
   } catch {
     return { ok: false, code: "CONFIG_MISSING", message: "Uygulama adresi yapılandırılmadığı için QR kartları üretilemedi." };
   }
+  let eventId: string;
+  try { eventId = await resolved.getActiveEventId?.() ?? "test-event"; } catch { return { ok: false, code: "CREATE_FAILED", message: "Aktif etkinlik seçilmeden QR üretilemez." }; }
 
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
@@ -126,6 +132,7 @@ export async function generateQrCodes(
             status: QrCodeStatus.CREATED,
             assignedAt: null,
             usedAt: null,
+            eventId,
           })),
         );
 

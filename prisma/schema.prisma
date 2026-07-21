@@ -28,6 +28,29 @@ enum SchoolStatus {
   INACTIVE
 }
 
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Event {
+  id              String           @id @default(cuid())
+  name            String
+  eventDate       DateTime
+  location        String
+  status          EventStatus      @default(DRAFT)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  vrRecords       VrRecord[]
+  qrCodes         QrCode[]
+  qrRegistrations QrRegistration[]
+
+  @@index([status, eventDate])
+  @@index([eventDate])
+}
+
 model School {
   id              String           @id @default(cuid())
   name            String
@@ -64,6 +87,7 @@ model VrRecord {
   lastName         String
   school           String
   schoolId         String?
+  eventId          String
   phone            String?
   createdByUserId  String
   assignedQrCodeId String?       @unique
@@ -73,11 +97,13 @@ model VrRecord {
   assignedQrCode   QrCode?       @relation("QrCodeAssignedToVrRecord", fields: [assignedQrCodeId], references: [id], onDelete: SetNull)
   studentMatch     StudentMatch?
   schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([firstName])
   @@index([lastName])
   @@index([school])
   @@index([schoolId])
+  @@index([eventId, createdAt])
   @@index([createdByUserId])
   @@index([createdAt])
 }
@@ -85,6 +111,7 @@ model VrRecord {
 model QrCode {
   id               String          @id @default(cuid())
   serialNumber     String          @unique
+  eventId          String
   tokenHash        String          @unique
   status           QrCodeStatus    @default(CREATED)
   assignedAt       DateTime?
@@ -94,8 +121,10 @@ model QrCode {
   updatedAt        DateTime        @updatedAt
   assignedVrRecord VrRecord?       @relation("QrCodeAssignedToVrRecord")
   qrRegistration   QrRegistration?
+  event            Event           @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([status])
+  @@index([eventId, status])
   @@index([createdAt])
   @@index([archivedAt])
 }
@@ -103,6 +132,7 @@ model QrCode {
 model QrRegistration {
   id               String        @id @default(cuid())
   qrCodeId         String        @unique
+  eventId          String
   firstName        String
   lastName         String
   guardianName     String
@@ -123,11 +153,13 @@ model QrRegistration {
   enrolledByUser   User?         @relation("QrRegistrationEnrolledBy", fields: [enrolledByUserId], references: [id], onDelete: SetNull)
   studentMatch     StudentMatch?
   schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([firstName])
   @@index([lastName])
   @@index([school])
   @@index([schoolId])
+  @@index([eventId, registeredAt])
   @@index([phone])
   @@index([registeredAt])
   @@index([attendedEvent])
