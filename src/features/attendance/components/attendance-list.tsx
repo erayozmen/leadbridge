@@ -23,6 +23,7 @@ import type {
   AttendanceFilters,
   AttendanceListItem,
 } from "@/features/attendance/queries/list-attendance-registrations";
+import { PageSizeSelect, SortSelect } from "@/components/shared/list-controls";
 
 const date = new Intl.DateTimeFormat("tr-TR", {
   dateStyle: "medium",
@@ -32,7 +33,7 @@ const date = new Intl.DateTimeFormat("tr-TR", {
 function href(page: number, filters: AttendanceFilters) {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (typeof value === "string" && value) query.set(key, value);
+    if ((typeof value === "string" && value) || (typeof value === "number" && value)) query.set(key, String(value));
   }
   if (page > 1) query.set("page", String(page));
   return `/dashboard/attendance${query.size ? `?${query}` : ""}`;
@@ -78,6 +79,8 @@ export function AttendanceList({
             />
           </div>
         ))}
+        <div className="grid gap-2"><Label htmlFor="attendance-status">Katılım</Label><select id="attendance-status" name="attendance" defaultValue={filters.attendance??""} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="">Tümü</option><option value="attended">Katıldı</option><option value="not-attended">Katılmadı</option></select></div>
+        <SortSelect value={filters.sort} /><PageSizeSelect value={filters.pageSize} />
         <div className="flex gap-2">
           <Button type="submit"><Search />Ara</Button>
           {hasFilters ? <Button asChild variant="outline"><Link href="/dashboard/attendance">Temizle</Link></Button> : null}

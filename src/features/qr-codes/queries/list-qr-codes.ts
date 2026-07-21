@@ -1,8 +1,9 @@
 import "server-only";
 
 import { Prisma, QrCodeStatus } from "@prisma/client";
+import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-pagination";
 
-export const QR_CODES_PAGE_SIZE = 20;
+export const QR_CODES_PAGE_SIZE = 25;
 
 export type QrCodeFilters = {
   serialNumber?: string;
@@ -11,6 +12,8 @@ export type QrCodeFilters = {
   createdTo?: string;
   archive?: string;
   page?: number;
+  pageSize?: number;
+  sort?: string;
 };
 
 export type QrCodeListItem = {
@@ -59,7 +62,7 @@ export async function listQrCodes(filters: QrCodeFilters, dependencies?: ListQrC
     : undefined;
   const createdFrom = validDate(filters.createdFrom);
   const createdTo = validDate(filters.createdTo, true);
-  const page = Number.isInteger(filters.page) && (filters.page ?? 0) > 0 ? filters.page! : 1;
+  const page = parsePositivePage(filters.page), pageSize = parsePageSize(filters.pageSize), sort = parseSort(filters.sort, ["newest", "oldest", "serial-asc", "serial-desc"] as const, "newest");
   const archive = filters.archive === "archived" || filters.archive === "all" ? filters.archive : "active";
   const where: Prisma.QrCodeWhereInput = {
     ...(archive === "active" ? { archivedAt: null } : archive === "archived" ? { archivedAt: { not: null } } : {}),
@@ -85,9 +88,9 @@ export async function listQrCodes(filters: QrCodeFilters, dependencies?: ListQrC
         assignedVrRecord: { select: { firstName: true, lastName: true } },
         qrRegistration: { select: { firstName: true, lastName: true } },
       },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * QR_CODES_PAGE_SIZE,
-      take: QR_CODES_PAGE_SIZE,
+      orderBy: sort === "oldest" ? { createdAt: "asc" } : sort === "serial-asc" ? { serialNumber: "asc" } : sort === "serial-desc" ? { serialNumber: "desc" } : { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
     }),
   ]);
 
@@ -95,7 +98,9 @@ export async function listQrCodes(filters: QrCodeFilters, dependencies?: ListQrC
     records,
     total,
     page,
-    pageCount: Math.max(1, Math.ceil(total / QR_CODES_PAGE_SIZE)),
-    hasFilters: Boolean(serialNumber || status || createdFrom || createdTo || archive !== "active"),
+    pageSize,
+    sort,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    hasFilters: Boolean(serialNumber || status || createdFrom || createdTo || archive !== "active" || sort !== "newest"),
   };
 }

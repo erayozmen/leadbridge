@@ -13,6 +13,7 @@ export default async function VrRecordsPage({ searchParams }: { searchParams: Se
     firstName: firstValue(params.firstName), lastName: firstValue(params.lastName), schoolId: firstValue(params.schoolId),
     createdFrom: firstValue(params.createdFrom), createdTo: firstValue(params.createdTo), createdByUserId: firstValue(params.createdByUserId),
     qrStatus: firstValue(params.qrStatus), matchStatus: firstValue(params.matchStatus),
+    sort: firstValue(params.sort), pageSize: Number(firstValue(params.pageSize)),
   };
   const [result, options] = await Promise.all([
     listVrRecords({ ...filters, page: Number(firstValue(params.page)) }),

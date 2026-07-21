@@ -23,6 +23,9 @@ export default async function CourseEnrollmentsPage({
     enrollment: first(params.enrollment),
     registeredFrom: first(params.registeredFrom),
     registeredTo: first(params.registeredTo),
+    enrolledByUserId: first(params.enrolledByUserId),
+    sort: first(params.sort),
+    pageSize: Number(first(params.pageSize)),
   };
   const [result, schools] = await Promise.all([
     listCourseEnrollments({ ...filters, page: Number(first(params.page)) }),

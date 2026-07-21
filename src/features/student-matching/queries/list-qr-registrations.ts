@@ -2,9 +2,10 @@ import "server-only";
 
 import type { Prisma } from "@prisma/client";
 import { resolveSchoolDisplayName } from "@/features/schools/lib/normalize-school-name";
+import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-pagination";
 
-export const REGISTRATIONS_PAGE_SIZE = 20;
-export type RegistrationFilters = { firstName?: string; lastName?: string; school?: string; page?: number };
+export const REGISTRATIONS_PAGE_SIZE = 25;
+export type RegistrationFilters = { firstName?: string; lastName?: string; school?: string; matchStatus?: string; attendance?: string; enrollment?: string; registeredFrom?: string; registeredTo?: string; page?: number; pageSize?: number; sort?: string };
 export type RegistrationListItem = {
   id: string; firstName: string; lastName: string; guardianName: string; phone: string; school: string; schoolRelation: { name: string } | null; registeredAt: Date;
   qrCode: { serialNumber: string };
@@ -28,12 +29,18 @@ export async function listQrRegistrations(filters: RegistrationFilters, options:
   const firstName = filters.firstName?.trim().slice(0, 80) || undefined;
   const lastName = filters.lastName?.trim().slice(0, 80) || undefined;
   const school = filters.school?.trim().slice(0, 120) || undefined;
-  const page = Number.isInteger(filters.page) && (filters.page ?? 0) > 0 ? filters.page! : 1;
+  const page = parsePositivePage(filters.page), pageSize = parsePageSize(filters.pageSize), sort = parseSort(filters.sort, ["newest", "oldest", "name-asc", "name-desc"] as const, "newest");
+  const matchStatus = filters.matchStatus === "matched" || filters.matchStatus === "unmatched" ? filters.matchStatus : undefined;
+  const attendance = filters.attendance === "attended" ? true : filters.attendance === "not-attended" ? false : undefined;
+  const enrollment = filters.enrollment === "enrolled" ? true : filters.enrollment === "not-enrolled" ? false : undefined;
   const where: Prisma.QrRegistrationWhereInput = {
     ...(options.unmatchedOnly ? { studentMatch: null } : {}),
     ...(firstName ? { firstName: { contains: firstName, mode: "insensitive" } } : {}),
     ...(lastName ? { lastName: { contains: lastName, mode: "insensitive" } } : {}),
     ...(school ? { school: { contains: school, mode: "insensitive" } } : {}),
+    ...(matchStatus === "matched" ? { studentMatch: { isNot: null } } : matchStatus === "unmatched" ? { studentMatch: { is: null } } : {}),
+    ...(attendance !== undefined ? { attendedEvent: attendance } : {}),
+    ...(enrollment !== undefined ? { enrolledCourse: enrollment } : {}),
   };
   const deps = dependencies ?? (await defaults());
   const [total, records] = await Promise.all([
@@ -42,9 +49,9 @@ export async function listQrRegistrations(filters: RegistrationFilters, options:
       id: true, firstName: true, lastName: true, guardianName: true, phone: true, school: true, schoolRelation: { select: { name: true } }, registeredAt: true,
       qrCode: { select: { serialNumber: true } },
       studentMatch: { select: { id: true, matchedAt: true, vrRecord: { select: { id: true, firstName: true, lastName: true } } } },
-    }, orderBy: { registeredAt: "desc" }, skip: (page - 1) * REGISTRATIONS_PAGE_SIZE, take: REGISTRATIONS_PAGE_SIZE }),
+    }, orderBy: sort === "oldest" ? { registeredAt: "asc" } : sort === "name-asc" ? { firstName: "asc" } : sort === "name-desc" ? { firstName: "desc" } : { registeredAt: "desc" }, skip: (page - 1) * pageSize, take: pageSize }),
   ]);
-  return { records: records.map((record) => ({ ...record, school: resolveSchoolDisplayName(record.schoolRelation, record.school) })), total, page, pageCount: Math.max(1, Math.ceil(total / REGISTRATIONS_PAGE_SIZE)), hasFilters: Boolean(firstName || lastName || school) };
+  return { records: records.map((record) => ({ ...record, school: resolveSchoolDisplayName(record.schoolRelation, record.school) })), total, page, pageSize, sort, pageCount: Math.max(1, Math.ceil(total / pageSize)), hasFilters: Boolean(firstName || lastName || school || matchStatus || attendance !== undefined || enrollment !== undefined || sort !== "newest") };
 }
 
 export async function getVrMatchTarget(id: string) {

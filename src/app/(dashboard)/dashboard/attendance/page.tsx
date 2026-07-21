@@ -19,6 +19,10 @@ export default async function AttendancePage({ searchParams }: Props) {
     lastName: first(params.lastName),
     school: first(params.school),
     phone: first(params.phone),
+    attendance: first(params.attendance),
+    attendedByUserId: first(params.attendedByUserId),
+    sort: first(params.sort),
+    pageSize: Number(first(params.pageSize)),
   };
   const result = await listAttendanceRegistrations({
     ...filters,

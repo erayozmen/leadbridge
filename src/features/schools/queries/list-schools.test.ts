@@ -6,7 +6,7 @@ const deps = (): ListSchoolsDependencies => ({ count: vi.fn(async () => 21), fin
 describe("listSchools", () => {
   it("filters by status", async () => { const state = deps(); await listSchools({ status: SchoolStatus.ACTIVE }, state); expect(state.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { status: SchoolStatus.ACTIVE } })); });
   it("selects VR and QR registration counts", async () => { const state = deps(); await listSchools({}, state); const args = vi.mocked(state.findMany).mock.calls[0][0]; expect(args.select).toMatchObject({ _count: { select: { vrRecords: true, qrRegistrations: true } } }); });
-  it("paginates with twenty rows", async () => { const state = deps(); await listSchools({ page: 2 }, state); expect(state.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 20, take: SCHOOL_PAGE_SIZE })); });
+  it("paginates with selected page size", async () => { const state = deps(); await listSchools({ page: 2 }, state); expect(state.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 25, take: SCHOOL_PAGE_SIZE })); });
   it("does not select secrets or tokens", async () => { const state = deps(); await listSchools({}, state); expect(JSON.stringify(vi.mocked(state.findMany).mock.calls[0][0].select)).not.toMatch(/token|secret/i); });
 });
 describe("listActiveSchools", () => {

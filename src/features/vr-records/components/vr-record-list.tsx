@@ -12,6 +12,7 @@ import { UnassignQrCodeButton } from "@/features/vr-records/components/unassign-
 import { canAssignQrCode } from "@/features/vr-records/lib/qr-assignment-permissions";
 import { canUnassignQrCode } from "@/features/vr-records/lib/qr-unassignment-permissions";
 import type { VrRecordFilters, VrRecordListItem } from "@/features/vr-records/queries/list-vr-records";
+import { PageSizeSelect, SortSelect } from "@/components/shared/list-controls";
 
 type ListProps = {
   records: VrRecordListItem[]; page: number; pageCount: number; total: number; hasFilters: boolean; filters: VrRecordFilters;
@@ -22,7 +23,7 @@ const qrStatusLabels: Record<QrCodeStatus, string> = { CREATED: "Oluşturuldu", 
 
 function pageHref(page: number, filters: VrRecordFilters) {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) if (typeof value === "string" && value) params.set(key, value);
+  for (const [key, value] of Object.entries(filters)) if ((typeof value === "string" && value) || (typeof value === "number" && value)) params.set(key, String(value));
   if (page > 1) params.set("page", String(page));
   return `/dashboard/vr-records${params.size ? `?${params}` : ""}`;
 }
@@ -39,6 +40,7 @@ export function VrRecordList({ records, page, pageCount, total, hasFilters, filt
         <div className="grid gap-2"><Label htmlFor="filter-creator">Kaydı Oluşturan</Label><select id="filter-creator" name="createdByUserId" defaultValue={filters.createdByUserId ?? ""} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="">Tümü</option>{options.creators.map((creator) => <option key={creator.id} value={creator.id}>{creator.fullName}</option>)}</select></div>
         <div className="grid gap-2"><Label htmlFor="filter-qr-status">QR Durumu</Label><select id="filter-qr-status" name="qrStatus" defaultValue={filters.qrStatus ?? ""} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="">Tümü</option><option value="UNASSIGNED">QR Atanmadı</option>{Object.values(QrCodeStatus).map((status) => <option key={status} value={status}>{qrStatusLabels[status]}</option>)}</select></div>
         <div className="grid gap-2"><Label htmlFor="filter-match-status">Eşleşme Durumu</Label><select id="filter-match-status" name="matchStatus" defaultValue={filters.matchStatus ?? ""} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="">Tümü</option><option value="matched">Eşleşti</option><option value="unmatched">Eşleşmedi</option></select></div>
+        <SortSelect value={filters.sort} /><PageSizeSelect value={filters.pageSize} />
         <div className="flex gap-2 sm:col-span-2 lg:col-span-4 xl:col-span-2"><Button type="submit"><Search aria-hidden="true" />Ara</Button>{hasFilters ? <Button variant="outline" asChild><Link href="/dashboard/vr-records">Temizle</Link></Button> : null}</div>
       </form>
       {records.length === 0 ? <div className="grid min-h-72 place-items-center px-6 py-12 text-center"><div className="max-w-sm"><Search aria-hidden="true" className="mx-auto size-7 text-muted-foreground" /><p className="mt-4 font-medium">{hasFilters ? "Filtrelerle eşleşen kayıt bulunamadı" : "Henüz VR kaydı yok"}</p><p className="mt-2 text-sm leading-6 text-muted-foreground">{hasFilters ? "Filtreleri değiştirerek yeniden arayın veya tüm kayıtları görüntüleyin." : "Yeni kayıtları VR Kaydı ekranından ekleyebilirsiniz."}</p></div></div> : (

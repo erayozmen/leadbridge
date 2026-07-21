@@ -38,6 +38,6 @@ describe("listQrCodes", () => {
   it("calculates pagination skip and take", async () => {
     const deps = dependencies();
     await listQrCodes({ page: 3 }, deps);
-    expect(deps.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 40, take: QR_CODES_PAGE_SIZE }));
+    expect(deps.findMany).toHaveBeenCalledWith(expect.objectContaining({ skip: 50, take: QR_CODES_PAGE_SIZE }));
   });
 });

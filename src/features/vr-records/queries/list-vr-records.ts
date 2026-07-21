@@ -1,8 +1,9 @@
 import "server-only";
 
 import { QrCodeStatus, type Prisma } from "@prisma/client";
+import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-pagination";
 
-export const VR_RECORDS_PAGE_SIZE = 20;
+export const VR_RECORDS_PAGE_SIZE = 25;
 
 export type VrRecordFilters = {
   firstName?: string;
@@ -14,6 +15,8 @@ export type VrRecordFilters = {
   qrStatus?: string;
   matchStatus?: string;
   page?: number;
+  pageSize?: number;
+  sort?: string;
 };
 
 export type VrRecordListItem = {
@@ -79,7 +82,7 @@ export async function listVrRecords(filters: VrRecordFilters, dependencies?: Lis
   const createdTo = parseDate(filters.createdTo, true);
   const qrStatus = Object.values(QrCodeStatus).includes(filters.qrStatus as QrCodeStatus) ? filters.qrStatus as QrCodeStatus : filters.qrStatus === "UNASSIGNED" ? "UNASSIGNED" : undefined;
   const matchStatus = filters.matchStatus === "matched" || filters.matchStatus === "unmatched" ? filters.matchStatus : undefined;
-  const page = Number.isInteger(filters.page) && (filters.page ?? 0) > 0 ? filters.page! : 1;
+  const page = parsePositivePage(filters.page), pageSize = parsePageSize(filters.pageSize), sort = parseSort(filters.sort, ["newest", "oldest", "name-asc", "name-desc"] as const, "newest");
   const where: Prisma.VrRecordWhereInput = {
     ...(firstName ? { firstName: { contains: firstName, mode: "insensitive" } } : {}),
     ...(lastName ? { lastName: { contains: lastName, mode: "insensitive" } } : {}),
@@ -98,8 +101,8 @@ export async function listVrRecords(filters: VrRecordFilters, dependencies?: Lis
       assignedQrCode: { select: { id: true, serialNumber: true, status: true, assignedAt: true, usedAt: true, archivedAt: true, qrRegistration: { select: { id: true } } } },
       studentMatch: { select: { id: true, matchedAt: true, qrRegistration: { select: { firstName: true, lastName: true } } } },
     },
-    orderBy: { createdAt: "desc" }, skip: (page - 1) * VR_RECORDS_PAGE_SIZE, take: VR_RECORDS_PAGE_SIZE,
+    orderBy: sort === "oldest" ? { createdAt: "asc" } : sort === "name-asc" ? { firstName: "asc" } : sort === "name-desc" ? { firstName: "desc" } : { createdAt: "desc" }, skip: (page - 1) * pageSize, take: pageSize,
   })]);
   const displayRecords = records.map((record) => ({ ...record, school: record.schoolRelation?.name ?? record.school }));
-  return { records: displayRecords, total, page, pageSize: VR_RECORDS_PAGE_SIZE, pageCount: Math.max(1, Math.ceil(total / VR_RECORDS_PAGE_SIZE)), hasFilters: Boolean(firstName || lastName || schoolId || createdByUserId || createdFrom || createdTo || qrStatus || matchStatus) };
+  return { records: displayRecords, total, page, pageSize, sort, pageCount: Math.max(1, Math.ceil(total / pageSize)), hasFilters: Boolean(firstName || lastName || schoolId || createdByUserId || createdFrom || createdTo || qrStatus || matchStatus || sort !== "newest") };
 }

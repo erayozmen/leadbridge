@@ -10,13 +10,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArchiveAllDisabledQrCodesButton, ArchiveQrCodeButton } from "@/features/qr-codes/components/archive-qr-code-buttons";
 import { DisableQrCodeButton } from "@/features/qr-codes/components/disable-qr-code-button";
 import type { QrCodeFilters, QrCodeListItem } from "@/features/qr-codes/queries/list-qr-codes";
+import { PageSizeSelect, SortSelect } from "@/components/shared/list-controls";
 
 const labels: Record<QrCodeStatus, string> = { CREATED: "Oluşturuldu", ASSIGNED: "Atandı", USED: "Kullanıldı", DISABLED: "Devre Dışı" };
 const dateFormatter = new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" });
 
 function pageHref(page: number, filters: QrCodeFilters) {
   const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(filters)) if (typeof value === "string" && value) params.set(key, value);
+  for (const [key, value] of Object.entries(filters)) if ((typeof value === "string" && value) || (typeof value === "number" && value)) params.set(key, String(value));
   if (page > 1) params.set("page", String(page));
   return `/dashboard/qr-codes${params.size ? `?${params}` : ""}`;
 }
@@ -30,6 +31,7 @@ export function QrCodeList({ records, total, page, pageCount, hasFilters, filter
         <div className="grid gap-2"><Label htmlFor="archive">Kayıt Görünümü</Label><select id="archive" name="archive" defaultValue={filters.archive ?? "active"} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="active">Aktif Kayıtlar</option><option value="archived">Arşivlenenler</option><option value="all">Tümü</option></select></div>
         <div className="grid gap-2"><Label htmlFor="createdFrom">Başlangıç</Label><Input id="createdFrom" name="createdFrom" type="date" defaultValue={filters.createdFrom} /></div>
         <div className="grid gap-2"><Label htmlFor="createdTo">Bitiş</Label><Input id="createdTo" name="createdTo" type="date" defaultValue={filters.createdTo} /></div>
+        <SortSelect value={filters.sort} /><PageSizeSelect value={filters.pageSize} />
         <div className="flex gap-2"><Button type="submit"><Search />Ara</Button>{hasFilters ? <Button asChild variant="outline"><Link href="/dashboard/qr-codes">Temizle</Link></Button> : null}</div>
       </form>
       <div className="border-b p-5"><ArchiveAllDisabledQrCodesButton /></div>

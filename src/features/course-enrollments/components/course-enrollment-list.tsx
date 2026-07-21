@@ -21,13 +21,14 @@ import type {
   CourseEnrollmentListItem,
 } from "@/features/course-enrollments/queries/list-course-enrollments";
 import type { StudentEligibility } from "@/features/course-enrollments/lib/language-school-selection";
+import { PageSizeSelect, SortSelect } from "@/components/shared/list-controls";
 
 const date = new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" });
 
 function href(page: number, filters: CourseEnrollmentFilters) {
   const query = new URLSearchParams();
   for (const [key, value] of Object.entries(filters)) {
-    if (typeof value === "string" && value) query.set(key, value);
+    if ((typeof value === "string" && value) || (typeof value === "number" && value)) query.set(key, String(value));
   }
   if (page > 1) query.set("page", String(page));
   return `/dashboard/course-enrollments${query.size ? `?${query}` : ""}`;
@@ -75,6 +76,7 @@ export function CourseEnrollmentList({
           <Label htmlFor="course-first">Ad</Label>
           <Input id="course-first" name="firstName" defaultValue={filters.firstName} />
         </div>
+        <SortSelect value={filters.sort} /><PageSizeSelect value={filters.pageSize} />
         <div className="grid gap-2">
           <Label htmlFor="course-last">Soyad</Label>
           <Input id="course-last" name="lastName" defaultValue={filters.lastName} />
