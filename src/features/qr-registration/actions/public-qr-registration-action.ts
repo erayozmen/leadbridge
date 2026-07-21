@@ -2,6 +2,7 @@
 
 import { createQrRegistration } from "@/features/qr-registration/services/create-qr-registration";
 import type { QrRegistrationFieldErrors } from "@/features/qr-registration/types/qr-registration-result";
+import { guardMutation } from "@/lib/security/request-guard";
 
 export type PublicQrRegistrationState = {
   status: "idle" | "success" | "error";
@@ -18,6 +19,7 @@ export async function publicQrRegistrationAction(
   _state: PublicQrRegistrationState,
   formData: FormData,
 ): Promise<PublicQrRegistrationState> {
+  if (!await guardMutation("public-registration", { limit: 8, windowMs: 60_000 })) return { status: "error", message: "Çok fazla deneme yapıldı. Lütfen kısa süre sonra tekrar deneyin." };
   const result = await createQrRegistration({
     token: textField(formData, "token"),
     firstName: textField(formData, "firstName"),
