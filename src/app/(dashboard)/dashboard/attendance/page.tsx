@@ -1,3 +1,39 @@
-import{Card}from"@/components/ui/card";import{requireStaffOrAdmin}from"@/features/auth/server/auth";import{AttendanceList}from"@/features/attendance/components/attendance-list";import{listAttendanceRegistrations}from"@/features/attendance/queries/list-attendance-registrations";
-type Props={searchParams:Promise<Record<string,string|string[]|undefined>>};const first=(v:string|string[]|undefined)=>Array.isArray(v)?v[0]:v;
-export default async function AttendancePage({searchParams}:Props){await requireStaffOrAdmin();const p=await searchParams;const filters={firstName:first(p.firstName),lastName:first(p.lastName),school:first(p.school),phone:first(p.phone)};const result=await listAttendanceRegistrations({...filters,page:Number(first(p.page))});return <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8"><h1 className="text-3xl font-semibold">Etkinlik Katılımı</h1><p className="mt-2 text-muted-foreground">QR kaydı bulunan öğrencileri arayın ve katılım durumlarını güvenli biçimde işaretleyin.</p><Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none"><AttendanceList {...result} filters={filters}/></Card></main>}
+import { Card } from "@/components/ui/card";
+import { AttendanceList } from "@/features/attendance/components/attendance-list";
+import { listAttendanceRegistrations } from "@/features/attendance/queries/list-attendance-registrations";
+import { requireStaffOrAdmin } from "@/features/auth/server/auth";
+
+type Props = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+const first = (value: string | string[] | undefined) => (
+  Array.isArray(value) ? value[0] : value
+);
+
+export default async function AttendancePage({ searchParams }: Props) {
+  const user = await requireStaffOrAdmin();
+  const params = await searchParams;
+  const filters = {
+    firstName: first(params.firstName),
+    lastName: first(params.lastName),
+    school: first(params.school),
+    phone: first(params.phone),
+  };
+  const result = await listAttendanceRegistrations({
+    ...filters,
+    page: Number(first(params.page)),
+  });
+
+  return (
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <h1 className="text-3xl font-semibold">Etkinlik Katılımı</h1>
+      <p className="mt-2 text-muted-foreground">
+        QR kaydı bulunan öğrencileri arayın ve katılım durumlarını güvenli biçimde yönetin.
+      </p>
+      <Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none">
+        <AttendanceList {...result} filters={filters} userRole={user.role} />
+      </Card>
+    </main>
+  );
+}
