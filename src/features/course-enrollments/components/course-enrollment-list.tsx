@@ -1,3 +1,4 @@
+import type { UserRole } from "@prisma/client";
 import { Search } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MarkCourseEnrollmentButton } from "@/features/course-enrollments/components/mark-course-enrollment-button";
+import { ReverseCourseEnrollmentButton } from "@/features/course-enrollments/components/reverse-course-enrollment-button";
+import { canReverseCourseEnrollment } from "@/features/course-enrollments/lib/course-enrollment-permissions";
 import type {
   CourseEnrollmentFilters,
   CourseEnrollmentListItem,
@@ -44,6 +47,7 @@ type Props = {
   onToggleSelection: (id: string) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
+  userRole: UserRole;
 };
 
 export function CourseEnrollmentList({
@@ -60,6 +64,7 @@ export function CourseEnrollmentList({
   onToggleSelection,
   onSelectAll,
   onClearSelection,
+  userRole,
 }: Props) {
   const selectableCount = records.filter((record) => eligibilityById.get(record.id)?.eligible).length;
 
@@ -195,7 +200,21 @@ export function CourseEnrollmentList({
                       <TableCell><Badge variant={record.studentMatch ? "default" : "secondary"}>{record.studentMatch ? "Eşleşti" : "Eşleşmedi"}</Badge></TableCell>
                       <TableCell><Badge variant={record.attendedEvent ? "default" : "secondary"}>{record.attendedEvent ? "Katıldı" : "Katılmadı"}</Badge></TableCell>
                       <TableCell>{record.enrolledCourse ? <div><Badge>Kursa Kayıtlı</Badge><p className="mt-1 text-xs text-muted-foreground">{record.enrolledAt ? date.format(record.enrolledAt) : "—"}</p><p className="text-xs text-muted-foreground">{record.enrolledByUser?.fullName ?? "—"}</p></div> : <Badge variant="secondary">Kayıtlı Değil</Badge>}</TableCell>
-                      <TableCell className="min-w-60 pr-5">{record.enrolledCourse ? "—" : <MarkCourseEnrollmentButton id={record.id} studentName={`${record.firstName} ${record.lastName}`} />}</TableCell>
+                      <TableCell className="min-w-60 pr-5">
+                        {record.enrolledCourse ? (
+                          canReverseCourseEnrollment(userRole, record.enrolledCourse) ? (
+                            <ReverseCourseEnrollmentButton
+                              id={record.id}
+                              studentName={`${record.firstName} ${record.lastName}`}
+                            />
+                          ) : "—"
+                        ) : (
+                          <MarkCourseEnrollmentButton
+                            id={record.id}
+                            studentName={`${record.firstName} ${record.lastName}`}
+                          />
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}

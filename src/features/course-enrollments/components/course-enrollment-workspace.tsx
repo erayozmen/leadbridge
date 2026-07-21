@@ -1,5 +1,6 @@
 "use client";
 
+import type { UserRole } from "@prisma/client";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { CourseEnrollmentList } from "@/features/course-enrollments/components/course-enrollment-list";
@@ -23,6 +24,7 @@ type Props = {
   hasFilters: boolean;
   filters: CourseEnrollmentFilters;
   schools: Array<{ id: string; name: string }>;
+  userRole: UserRole;
 };
 
 export function CourseEnrollmentWorkspace(props: Props) {

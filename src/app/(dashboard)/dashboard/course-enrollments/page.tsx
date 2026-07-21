@@ -12,7 +12,7 @@ export default async function CourseEnrollmentsPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireAdmin();
+  const user = await requireAdmin();
   const params = await searchParams;
   const filters = {
     firstName: first(params.firstName),
@@ -35,7 +35,12 @@ export default async function CourseEnrollmentsPage({
       <p className="mt-2 text-muted-foreground">
         QR kaydı bulunan öğrencilerin manuel dil kursu kayıt durumunu yönetin.
       </p>
-      <CourseEnrollmentWorkspace {...result} filters={filters} schools={schools} />
+      <CourseEnrollmentWorkspace
+        {...result}
+        filters={filters}
+        schools={schools}
+        userRole={user.role}
+      />
     </main>
   );
 }
