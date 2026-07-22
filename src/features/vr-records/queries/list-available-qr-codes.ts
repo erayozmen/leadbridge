@@ -11,10 +11,10 @@ export type AvailableQrDependencies = {
   findMany: (args: FindManyArgs) => Promise<AvailableQrCode[]>;
 };
 
-export async function getVrRecordForQrAssignment(id: string) {
+export async function getVrRecordForQrAssignment(id: string, eventId?: string) {
   const { prisma } = await import("@/lib/prisma");
   return prisma.vrRecord.findUnique({
-    where: { id },
+    where: { id, ...(eventId ? { eventId } : {}) },
     select: {
       id: true,
       firstName: true,
@@ -32,12 +32,13 @@ async function getDefaultDependencies(): Promise<AvailableQrDependencies> {
 }
 
 export async function listAvailableQrCodes(
-  filters: { serialNumber?: string; page?: number },
+  filters: { eventId?: string; serialNumber?: string; page?: number },
   dependencies?: AvailableQrDependencies,
 ) {
   const serialNumber = filters.serialNumber?.trim().slice(0, 32) || undefined;
   const page = Number.isInteger(filters.page) && (filters.page ?? 0) > 0 ? filters.page! : 1;
   const where: Prisma.QrCodeWhereInput = {
+    ...(filters.eventId ? { eventId: filters.eventId } : {}),
     status: QrCodeStatus.CREATED,
     archivedAt: null,
     assignedVrRecord: null,

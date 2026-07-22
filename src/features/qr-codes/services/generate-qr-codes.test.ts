@@ -12,6 +12,7 @@ function dependencies(overrides: Partial<GenerateQrCodesDependencies> = {}) {
   const created: Array<Record<string, unknown>> = [];
   const deps: GenerateQrCodesDependencies = {
     requireAdmin: vi.fn(async () => ({})),
+    getOperationalEventId: vi.fn(async () => "event_1"),
     getAppUrl: () => "http://localhost:3000",
     generateToken: () => `secure-token-${++tokenIndex}`,
     runTransaction: vi.fn(async (callback) => callback({

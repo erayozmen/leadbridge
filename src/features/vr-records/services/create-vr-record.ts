@@ -9,6 +9,7 @@ import {
 import type { CreateVrRecordResult } from "@/features/vr-records/types/vr-record-result";
 
 type VrRecordCreateData = {
+  eventId: string;
   firstName: string;
   lastName: string;
   school: string;
@@ -20,6 +21,7 @@ type VrRecordCreateData = {
 export type CreateVrRecordDependencies = {
   requireUser: () => Promise<AppUser>;
   findActiveSchool: (id: string) => Promise<{ id: string; name: string } | null>;
+  getOperationalEventId: () => Promise<string>;
   createRecord: (data: VrRecordCreateData) => Promise<{
     id: string;
     firstName: string;
@@ -31,13 +33,16 @@ export type CreateVrRecordDependencies = {
 };
 
 async function getDefaultDependencies(): Promise<CreateVrRecordDependencies> {
-  const [{ requireStaffOrAdmin }, { prisma }] = await Promise.all([
+  const [{ requireStaffOrAdmin }, { requireSelectedEvent }, { prisma }] = await Promise.all([
     import("@/features/auth/server/auth"),
+    import("@/features/events/server/event-context"),
     import("@/lib/prisma"),
   ]);
 
   return {
     requireUser: requireStaffOrAdmin,
+    getOperationalEventId: async () =>
+      (await requireSelectedEvent({ operational: true })).id,
     findActiveSchool: (id) => prisma.school.findFirst({ where: { id, status: "ACTIVE" }, select: { id: true, name: true } }),
     createRecord(data) {
       return prisma.vrRecord.create({
@@ -73,9 +78,11 @@ export async function createVrRecord(
   try {
     const resolved = dependencies ?? (await getDefaultDependencies());
     const user = await resolved.requireUser();
+    const eventId = await resolved.getOperationalEventId();
     const school = await resolved.findActiveSchool(parsedInput.data.schoolId);
     if (!school) return { ok: false, code: "INVALID_INPUT", message: "Seçilen okul aktif değil veya bulunamadı.", fieldErrors: { schoolId: ["Aktif bir okul seçin."] } };
     const record = await resolved.createRecord({
+      eventId,
       firstName: parsedInput.data.firstName,
       lastName: parsedInput.data.lastName,
       phone: parsedInput.data.phone,

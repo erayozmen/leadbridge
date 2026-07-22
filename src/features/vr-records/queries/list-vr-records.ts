@@ -6,6 +6,7 @@ import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-paginat
 export const VR_RECORDS_PAGE_SIZE = 25;
 
 export type VrRecordFilters = {
+  eventId?: string;
   firstName?: string;
   lastName?: string;
   schoolId?: string;
@@ -84,6 +85,7 @@ export async function listVrRecords(filters: VrRecordFilters, dependencies?: Lis
   const matchStatus = filters.matchStatus === "matched" || filters.matchStatus === "unmatched" ? filters.matchStatus : undefined;
   const page = parsePositivePage(filters.page), pageSize = parsePageSize(filters.pageSize), sort = parseSort(filters.sort, ["newest", "oldest", "name-asc", "name-desc"] as const, "newest");
   const where: Prisma.VrRecordWhereInput = {
+    ...(filters.eventId ? { eventId: filters.eventId } : {}),
     ...(firstName ? { firstName: { contains: firstName, mode: "insensitive" } } : {}),
     ...(lastName ? { lastName: { contains: lastName, mode: "insensitive" } } : {}),
     ...(schoolId ? { schoolId } : {}),

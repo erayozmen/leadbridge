@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { requireAdmin } from "@/features/auth/server/auth";
+import { requireSelectedEvent } from "@/features/events/server/event-context";
 import { AssignQrCodeButton } from "@/features/vr-records/components/assign-qr-code-button";
 import { getVrRecordForQrAssignment, listAvailableQrCodes } from "@/features/vr-records/queries/list-available-qr-codes";
 
@@ -27,14 +28,15 @@ function pageHref(id: string, page: number, serialNumber?: string) {
 
 export default async function AssignQrPage({ params, searchParams }: Props) {
   await requireAdmin();
+  const event = await requireSelectedEvent({ operational: true });
   const { id } = await params;
-  const student = await getVrRecordForQrAssignment(id);
+  const student = await getVrRecordForQrAssignment(id, event.id);
   if (!student) notFound();
   if (student.assignedQrCodeId) redirect("/dashboard/vr-records");
 
   const query = await searchParams;
   const serialNumber = first(query.serialNumber);
-  const result = await listAvailableQrCodes({ serialNumber, page: Number(first(query.page)) });
+  const result = await listAvailableQrCodes({ eventId: event.id, serialNumber, page: Number(first(query.page)) });
   const studentName = `${student.firstName} ${student.lastName}`;
 
   return (

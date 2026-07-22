@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { AttendanceList } from "@/features/attendance/components/attendance-list";
 import { listAttendanceRegistrations } from "@/features/attendance/queries/list-attendance-registrations";
 import { requireStaffOrAdmin } from "@/features/auth/server/auth";
+import { requireSelectedEvent } from "@/features/events/server/event-context";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -13,6 +14,7 @@ const first = (value: string | string[] | undefined) => (
 
 export default async function AttendancePage({ searchParams }: Props) {
   const user = await requireStaffOrAdmin();
+  const event = await requireSelectedEvent();
   const params = await searchParams;
   const filters = {
     firstName: first(params.firstName),
@@ -26,6 +28,7 @@ export default async function AttendancePage({ searchParams }: Props) {
   };
   const result = await listAttendanceRegistrations({
     ...filters,
+    eventId: event.id,
     page: Number(first(params.page)),
   });
 

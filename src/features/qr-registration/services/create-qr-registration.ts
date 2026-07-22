@@ -1,6 +1,6 @@
 import "server-only";
 
-import { Prisma, QrCodeStatus, SchoolStatus } from "@prisma/client";
+import { EventStatus, Prisma, QrCodeStatus, SchoolStatus } from "@prisma/client";
 
 import { hashQrToken } from "@/features/qr-registration/lib/hash-qr-token";
 import {
@@ -73,6 +73,8 @@ async function createRegistrationInTransaction(
       where: { tokenHash },
       select: {
         id: true,
+        eventId: true,
+        event: { select: { status: true } },
         status: true,
         archivedAt: true,
         qrRegistration: {
@@ -96,6 +98,13 @@ async function createRegistrationInTransaction(
           "QR_REGISTRATION_CONFLICT",
           "A registration already exists for this QR code.",
         ),
+      );
+    }
+
+
+    if ((qrCode.event?.status ?? EventStatus.ACTIVE) !== EventStatus.ACTIVE) {
+      throw new QrRegistrationDomainError(
+        failure("QR_DISABLED", "This event is not accepting registrations."),
       );
     }
 
@@ -146,6 +155,7 @@ async function createRegistrationInTransaction(
 
     const registration = await tx.qrRegistration.create({
       data: {
+        eventId: qrCode.eventId,
         qrCodeId: qrCode.id,
         firstName: data.firstName,
         lastName: data.lastName,

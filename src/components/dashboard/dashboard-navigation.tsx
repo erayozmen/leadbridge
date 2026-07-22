@@ -10,6 +10,8 @@ import {
   Users,
   Video,
   type LucideIcon,
+  CalendarDays,
+  Bell,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,6 +32,8 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   course: BookOpenCheck,
   reports: BarChart3,
   users: Users,
+  events: CalendarDays,
+  notifications: Bell,
 };
 
 export function DashboardNavigation({

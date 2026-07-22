@@ -7,9 +7,10 @@ import { assignQrCode, type AssignQrCodeDependencies } from "@/features/vr-recor
 vi.mock("server-only", () => ({}));
 
 type Options = {
-  vrRecord?: { id: string; assignedQrCodeId: string | null } | null;
+  vrRecord?: { id: string; eventId?: string; assignedQrCodeId: string | null } | null;
   qrCode?: {
     id: string;
+    eventId?: string;
     serialNumber: string;
     status: QrCodeStatus;
     archivedAt: Date | null;
@@ -22,9 +23,10 @@ type Options = {
 
 function dependencies(options: Options = {}) {
   const transaction = {
-    findVrRecord: vi.fn(async () => options.vrRecord === undefined ? { id: "vr_1", assignedQrCodeId: null } : options.vrRecord),
+    findVrRecord: vi.fn(async () => options.vrRecord === undefined ? { id: "vr_1", eventId: "event_1", assignedQrCodeId: null } : options.vrRecord),
     findQrCode: vi.fn(async () => options.qrCode === undefined ? {
       id: "qr_1",
+      eventId: "event_1",
       serialNumber: "LB-000001",
       status: QrCodeStatus.CREATED,
       archivedAt: null,
@@ -96,6 +98,13 @@ describe("assignQrCode", () => {
     await assignQrCode(input, deps);
     expect(transaction.claimQrCode).toHaveBeenCalledOnce();
     expect(transaction.attachQrToVrRecord).toHaveBeenCalledWith("vr_1", "qr_1");
+  });
+  it("rejects a QR from another event", async () => {
+    const result = await assignQrCode(input, dependencies({
+      vrRecord: { id: "vr_1", eventId: "event_1", assignedQrCodeId: null },
+      qrCode: { id: "qr_1", eventId: "event_2", serialNumber: "LB-000001", status: QrCodeStatus.CREATED, archivedAt: null, assigned: false },
+    }).deps);
+    expect(result).toMatchObject({ ok: false, code: "QR_NOT_AVAILABLE" });
   });
   it("maps a failed QR conditional update to ASSIGNMENT_CONFLICT", async () => {
     await expect(assignQrCode(input, dependencies({ qrCount: 0 }).deps)).resolves.toMatchObject({ ok: false, code: "ASSIGNMENT_CONFLICT" });

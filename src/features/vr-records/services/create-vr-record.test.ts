@@ -25,6 +25,7 @@ const validInput = {
 function createDependencies(user: AppUser = admin): CreateVrRecordDependencies {
   return {
     requireUser: vi.fn(async () => user),
+    getOperationalEventId: vi.fn(async () => "event_1"),
     findActiveSchool: vi.fn(async () => ({ id: "school_1", name: "Atatürk Lisesi" })),
     createRecord: vi.fn(async (data) => ({
       id: "vr_1",

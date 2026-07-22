@@ -28,6 +28,30 @@ enum SchoolStatus {
   INACTIVE
 }
 
+enum EventStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+model Event {
+  id              String           @id @default(cuid())
+  name            String
+  eventDate       DateTime
+  location        String
+  status          EventStatus      @default(DRAFT)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  vrRecords       VrRecord[]
+  qrCodes         QrCode[]
+  qrRegistrations QrRegistration[]
+  notifications   Notification[]
+
+  @@index([status, eventDate])
+  @@index([eventDate])
+}
+
 model School {
   id              String           @id @default(cuid())
   name            String
@@ -56,6 +80,7 @@ model User {
   attendedRegistrations QrRegistration[] @relation("QrRegistrationAttendedBy")
   enrolledRegistrations QrRegistration[] @relation("QrRegistrationEnrolledBy")
   auditLogs             AuditLog[]       @relation("AuditLogActor")
+  notifications         Notification[]
 }
 
 model VrRecord {
@@ -64,6 +89,7 @@ model VrRecord {
   lastName         String
   school           String
   schoolId         String?
+  eventId          String
   phone            String?
   createdByUserId  String
   assignedQrCodeId String?       @unique
@@ -73,11 +99,13 @@ model VrRecord {
   assignedQrCode   QrCode?       @relation("QrCodeAssignedToVrRecord", fields: [assignedQrCodeId], references: [id], onDelete: SetNull)
   studentMatch     StudentMatch?
   schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([firstName])
   @@index([lastName])
   @@index([school])
   @@index([schoolId])
+  @@index([eventId, createdAt])
   @@index([createdByUserId])
   @@index([createdAt])
 }
@@ -86,6 +114,7 @@ model QrCode {
   id               String          @id @default(cuid())
   serialNumber     String          @unique
   tokenHash        String          @unique
+  eventId          String
   status           QrCodeStatus    @default(CREATED)
   assignedAt       DateTime?
   usedAt           DateTime?
@@ -94,8 +123,10 @@ model QrCode {
   updatedAt        DateTime        @updatedAt
   assignedVrRecord VrRecord?       @relation("QrCodeAssignedToVrRecord")
   qrRegistration   QrRegistration?
+  event            Event           @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([status])
+  @@index([eventId, status])
   @@index([createdAt])
   @@index([archivedAt])
 }
@@ -103,6 +134,7 @@ model QrCode {
 model QrRegistration {
   id               String        @id @default(cuid())
   qrCodeId         String        @unique
+  eventId          String
   firstName        String
   lastName         String
   guardianName     String
@@ -123,11 +155,13 @@ model QrRegistration {
   enrolledByUser   User?         @relation("QrRegistrationEnrolledBy", fields: [enrolledByUserId], references: [id], onDelete: SetNull)
   studentMatch     StudentMatch?
   schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  event            Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([firstName])
   @@index([lastName])
   @@index([school])
   @@index([schoolId])
+  @@index([eventId, registeredAt])
   @@index([phone])
   @@index([registeredAt])
   @@index([attendedEvent])
@@ -169,4 +203,23 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([action, createdAt])
   @@index([createdAt])
+}
+
+model Notification {
+  id                String    @id @default(cuid())
+  userId            String
+  eventId           String?
+  type              String
+  title             String
+  message           String
+  relatedEntityType String?
+  relatedEntityId   String?
+  readAt            DateTime?
+  createdAt         DateTime  @default(now())
+  user              User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  event             Event?    @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, eventId, createdAt])
+  @@index([type, createdAt])
 }

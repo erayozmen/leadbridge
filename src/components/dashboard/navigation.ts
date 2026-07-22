@@ -2,13 +2,14 @@ export type DashboardRole = "ADMIN" | "STAFF";
 
 export type DashboardNavItem = {
   label: string;
-  icon: "overview" | "students" | "vr" | "qr" | "attendance" | "course" | "reports" | "users";
-  href?: "/dashboard" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/vr-records/import" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/attendance/scanner" | "/dashboard/schools" | "/dashboard/course-enrollments" | "/dashboard/reports" | "/dashboard/audit-logs" | "/dashboard/users";
+  icon: "overview" | "students" | "vr" | "qr" | "attendance" | "course" | "reports" | "users" | "events" | "notifications";
+  href?: "/dashboard" | "/dashboard/events" | "/dashboard/notifications" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/vr-records/import" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/attendance/scanner" | "/dashboard/schools" | "/dashboard/course-enrollments" | "/dashboard/reports" | "/dashboard/audit-logs" | "/dashboard/users";
   comingSoon?: boolean;
 };
 
 const adminNavigation: DashboardNavItem[] = [
   { label: "Genel Bakış", icon: "overview", href: "/dashboard" },
+  { label: "Etkinlikler", icon: "events", href: "/dashboard/events" },
   { label: "VR Kaydı", icon: "vr", href: "/dashboard/vr-records/new" },
   { label: "VR CSV İçe Aktar", icon: "vr", href: "/dashboard/vr-records/import" },
   { label: "VR İzleyenler", icon: "vr", href: "/dashboard/vr-records" },
@@ -21,9 +22,11 @@ const adminNavigation: DashboardNavItem[] = [
   { label: "Raporlar", icon: "reports", href: "/dashboard/reports" },
   { label: "Denetim Kayıtları", icon: "reports", href: "/dashboard/audit-logs" },
   { label: "Kullanıcılar", icon: "users", href: "/dashboard/users" },
+  { label: "Bildirimler", icon: "notifications", href: "/dashboard/notifications" },
 ];
 
 const staffNavigation: DashboardNavItem[] = [
+  { label: "Bildirimler", icon: "notifications", href: "/dashboard/notifications" },
   { label: "VR Kaydı", icon: "vr", href: "/dashboard/vr-records/new" },
   { label: "VR İzleyenler", icon: "students", href: "/dashboard/vr-records" },
   { label: "Etkinlik Katılımı", icon: "attendance", href: "/dashboard/attendance" },

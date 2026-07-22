@@ -4,7 +4,7 @@ import { resolveSchoolDisplayName } from "@/features/schools/lib/normalize-schoo
 import { parsePageSize, parsePositivePage, parseSort } from "@/lib/query-pagination";
 
 export const COURSE_ENROLLMENTS_PAGE_SIZE = 25;
-export type CourseEnrollmentFilters = { firstName?: string; lastName?: string; schoolId?: string; phone?: string; attendance?: string; enrollment?: string; registeredFrom?: string; registeredTo?: string; enrolledByUserId?: string; page?: number; pageSize?: number; sort?: string };
+export type CourseEnrollmentFilters = { eventId?: string; firstName?: string; lastName?: string; schoolId?: string; phone?: string; attendance?: string; enrollment?: string; registeredFrom?: string; registeredTo?: string; enrolledByUserId?: string; page?: number; pageSize?: number; sort?: string };
 export type CourseEnrollmentListItem = { id: string; firstName: string; lastName: string; school: string; schoolRelation: { name: string } | null; phone: string; guardianName: string; registeredAt: Date; attendedEvent: boolean; enrolledCourse: boolean; enrolledAt: Date | null; qrCode: { serialNumber: string }; studentMatch: { id: string } | null; enrolledByUser: { fullName: string } | null };
 type Args = { where: Prisma.QrRegistrationWhereInput; select: Prisma.QrRegistrationSelect; orderBy: Prisma.QrRegistrationOrderByWithRelationInput; skip: number; take: number };
 export type ListCourseEnrollmentDependencies = { count: (where: Prisma.QrRegistrationWhereInput) => Promise<number>; findMany: (args: Args) => Promise<CourseEnrollmentListItem[]> };
@@ -21,6 +21,7 @@ export async function listCourseEnrollments(filters: CourseEnrollmentFilters, de
   const page = parsePositivePage(filters.page), pageSize = parsePageSize(filters.pageSize), sort = parseSort(filters.sort, ["newest", "oldest", "name-asc", "name-desc"] as const, "newest");
   const enrolledByUserId = text(filters.enrolledByUserId, 100);
   const where: Prisma.QrRegistrationWhereInput = {
+    ...(filters.eventId ? { eventId: filters.eventId } : {}),
     ...(firstName ? { firstName: { contains: firstName, mode: "insensitive" } } : {}), ...(lastName ? { lastName: { contains: lastName, mode: "insensitive" } } : {}),
     ...(schoolId ? { schoolId } : {}), ...(phone ? { phone: { contains: phone } } : {}), ...(attendance !== undefined ? { attendedEvent: attendance } : {}), ...(enrollment !== undefined ? { enrolledCourse: enrollment } : {}),
     ...(registeredFrom || registeredTo ? { registeredAt: { ...(registeredFrom ? { gte: registeredFrom } : {}), ...(registeredTo ? { lte: registeredTo } : {}) } } : {}),

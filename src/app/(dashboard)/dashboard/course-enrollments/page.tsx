@@ -4,6 +4,7 @@ import {
   listCourseEnrollments,
   listCourseEnrollmentSchools,
 } from "@/features/course-enrollments/queries/list-course-enrollments";
+import { requireSelectedEvent } from "@/features/events/server/event-context";
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
@@ -13,6 +14,7 @@ export default async function CourseEnrollmentsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireAdmin();
+  const event = await requireSelectedEvent();
   const params = await searchParams;
   const filters = {
     firstName: first(params.firstName),
@@ -28,7 +30,7 @@ export default async function CourseEnrollmentsPage({
     pageSize: Number(first(params.pageSize)),
   };
   const [result, schools] = await Promise.all([
-    listCourseEnrollments({ ...filters, page: Number(first(params.page)) }),
+    listCourseEnrollments({ ...filters, eventId: event.id, page: Number(first(params.page)) }),
     listCourseEnrollmentSchools(),
   ]);
 
