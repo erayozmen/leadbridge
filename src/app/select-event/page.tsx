@@ -1,11 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { redirect } from "next/navigation";
 import { requireActiveUser } from "@/features/auth/server/auth";
+import { AuthError } from "@/features/auth/types/auth";
 import { selectEventAction } from "@/features/events/actions/event-context-actions";
 import { listSelectableEvents } from "@/features/events/server/event-context";
 
 export default async function SelectEventPage() {
-  const user = await requireActiveUser();
+  let user;
+
+  try {
+    user = await requireActiveUser();
+  } catch (error) {
+    if (error instanceof AuthError) redirect("/login");
+    throw error;
+  }
+
   const events = await listSelectableEvents(user.role);
 
   return (
