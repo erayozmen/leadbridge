@@ -46,11 +46,13 @@ export function CreateMatchButton({
 export function DeleteMatchButton({
   matchId,
   vrRecordId,
+  qrRegistrationId,
   vrStudentName,
   qrStudentName,
 }: {
   matchId: string;
   vrRecordId: string;
+  qrRegistrationId: string;
   vrStudentName: string;
   qrStudentName: string;
 }) {
@@ -88,6 +90,7 @@ export function DeleteMatchButton({
       <form action={action} className="space-y-3">
         <input type="hidden" name="matchId" value={matchId} />
         <input type="hidden" name="vrRecordId" value={vrRecordId} />
+        <input type="hidden" name="qrRegistrationId" value={qrRegistrationId} />
         <div className="space-y-2">
           <label
             htmlFor={`delete-match-reason-${matchId}`}

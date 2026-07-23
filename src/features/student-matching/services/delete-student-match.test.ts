@@ -20,7 +20,13 @@ const admin: AppUser = {
 };
 
 type Options = {
-  match?: { id: string; vrRecordId: string; qrRegistrationId: string } | null;
+  match?: {
+    id: string;
+    vrRecordId: string;
+    qrRegistrationId: string;
+    vrEventId: string;
+    qrRegistrationEventId: string;
+  } | null;
   deleteCount?: number;
   auditError?: boolean;
   databaseError?: boolean;
@@ -32,7 +38,13 @@ function dependencies(options: Options = {}) {
     findMatch: vi.fn(async () => {
       if (options.databaseError) throw new Error("raw database detail");
       return options.match === undefined
-        ? { id: "match_1", vrRecordId: "vr_1", qrRegistrationId: "registration_1" }
+        ? {
+          id: "match_1",
+          vrRecordId: "vr_1",
+          qrRegistrationId: "registration_1",
+          vrEventId: "event_1",
+          qrRegistrationEventId: "event_1",
+        }
         : options.match;
     }),
     deleteMatch: vi.fn(async () => {
@@ -49,6 +61,7 @@ function dependencies(options: Options = {}) {
   };
   const deps: DeleteStudentMatchDependencies = {
     requireAdmin: vi.fn(async () => admin),
+    getEventId: vi.fn(async () => "event_1"),
     runTransaction: vi.fn(async (callback) => {
       const snapshot = { ...state };
       try {
@@ -66,6 +79,7 @@ function dependencies(options: Options = {}) {
 const input = {
   matchId: "match_1",
   vrRecordId: "vr_1",
+  qrRegistrationId: "registration_1",
   reason: "Yanlış öğrenciler eşleştirildi",
 };
 
@@ -100,13 +114,43 @@ describe("deleteStudentMatch", () => {
     }));
   });
 
-  it("rejects a mismatched or missing match without audit", async () => {
+  it("rejects a missing match without audit", async () => {
+    const { deps, transaction } = dependencies({ match: null });
+    await expect(deleteStudentMatch(input, deps)).resolves.toMatchObject({
+      code: "MATCH_NOT_FOUND",
+    });
+    expect(transaction.deleteMatch).not.toHaveBeenCalled();
+    expect(transaction.writeAudit).not.toHaveBeenCalled();
+  });
+
+  it("rejects mismatched registration and event scope without delete or audit", async () => {
     for (const match of [
-      null,
-      { id: "match_1", vrRecordId: "vr_other", qrRegistrationId: "registration_1" },
+      {
+        id: "match_1",
+        vrRecordId: "vr_other",
+        qrRegistrationId: "registration_1",
+        vrEventId: "event_1",
+        qrRegistrationEventId: "event_1",
+      },
+      {
+        id: "match_1",
+        vrRecordId: "vr_1",
+        qrRegistrationId: "registration_other",
+        vrEventId: "event_1",
+        qrRegistrationEventId: "event_1",
+      },
+      {
+        id: "match_1",
+        vrRecordId: "vr_1",
+        qrRegistrationId: "registration_1",
+        vrEventId: "event_other",
+        qrRegistrationEventId: "event_other",
+      },
     ]) {
       const { deps, transaction } = dependencies({ match });
-      await expect(deleteStudentMatch(input, deps)).resolves.toMatchObject({ code: "MATCH_NOT_FOUND" });
+      await expect(deleteStudentMatch(input, deps)).resolves.toMatchObject({
+        code: "UNMATCH_CONFLICT",
+      });
       expect(transaction.deleteMatch).not.toHaveBeenCalled();
       expect(transaction.writeAudit).not.toHaveBeenCalled();
     }

@@ -12,16 +12,23 @@ type MatchState = {
   id: string;
   vrRecordId: string;
   qrRegistrationId: string;
+  vrEventId: string;
+  qrRegistrationEventId: string;
 };
 
 type DeleteMatchTransaction = {
   findMatch: (matchId: string) => Promise<MatchState | null>;
-  deleteMatch: (matchId: string, vrRecordId: string) => Promise<number>;
+  deleteMatch: (
+    matchId: string,
+    vrRecordId: string,
+    qrRegistrationId: string,
+  ) => Promise<number>;
   writeAudit: (input: WriteAuditLogInput) => Promise<unknown>;
 };
 
 export type DeleteStudentMatchDependencies = {
   requireAdmin: () => Promise<AppUser>;
+  getEventId: () => Promise<string>;
   runTransaction: <T>(
     callback: (transaction: DeleteMatchTransaction) => Promise<T>,
   ) => Promise<T>;
@@ -30,6 +37,7 @@ export type DeleteStudentMatchDependencies = {
 const inputSchema = z.object({
   matchId: z.string().trim().min(1).max(100),
   vrRecordId: z.string().trim().min(1).max(100),
+  qrRegistrationId: z.string().trim().min(1).max(100),
   reason: z.unknown(),
 }).strict();
 
@@ -45,23 +53,40 @@ const failure = (
 ) => ({ ok: false as const, code, message });
 
 async function defaults(): Promise<DeleteStudentMatchDependencies> {
-  const [{ requireAdmin }, { prisma }, { writeAuditLog }] = await Promise.all([
+  const [{ requireAdmin }, { resolveCompatibilityEvent }, { prisma }, { writeAuditLog }] = await Promise.all([
     import("@/features/auth/server/auth"),
+    import("@/features/events/server/event-context"),
     import("@/lib/prisma"),
     import("@/features/audit/services/write-audit-log"),
   ]);
 
   return {
     requireAdmin,
+    getEventId: async () => (await resolveCompatibilityEvent()).id,
     runTransaction(callback) {
       return prisma.$transaction(async (tx) => callback({
-        findMatch: (matchId) => tx.studentMatch.findUnique({
-          where: { id: matchId },
-          select: { id: true, vrRecordId: true, qrRegistrationId: true },
-        }),
-        async deleteMatch(matchId, vrRecordId) {
+        async findMatch(matchId) {
+          const match = await tx.studentMatch.findUnique({
+            where: { id: matchId },
+            select: {
+              id: true,
+              vrRecordId: true,
+              qrRegistrationId: true,
+              vrRecord: { select: { eventId: true } },
+              qrRegistration: { select: { eventId: true } },
+            },
+          });
+          return match ? {
+            id: match.id,
+            vrRecordId: match.vrRecordId,
+            qrRegistrationId: match.qrRegistrationId,
+            vrEventId: match.vrRecord.eventId,
+            qrRegistrationEventId: match.qrRegistration.eventId,
+          } : null;
+        },
+        async deleteMatch(matchId, vrRecordId, qrRegistrationId) {
           return (await tx.studentMatch.deleteMany({
-            where: { id: matchId, vrRecordId },
+            where: { id: matchId, vrRecordId, qrRegistrationId },
           })).count;
         },
         writeAudit: (input) => writeAuditLog(tx, input),
@@ -107,15 +132,30 @@ export async function deleteStudentMatch(
   }
 
   try {
+    const eventId = await deps.getEventId();
     return await deps.runTransaction(async (transaction) => {
       const match = await transaction.findMatch(parsed.data.matchId);
-      if (!match || match.vrRecordId !== parsed.data.vrRecordId) {
+      if (!match) {
         throw new DeleteMatchDomainError(
           failure("MATCH_NOT_FOUND", "Bu VR kaydına ait eşleşme bulunamadı."),
         );
       }
+      if (
+        match.vrRecordId !== parsed.data.vrRecordId
+        || match.qrRegistrationId !== parsed.data.qrRegistrationId
+        || match.vrEventId !== eventId
+        || match.qrRegistrationEventId !== eventId
+      ) {
+        throw new DeleteMatchDomainError(
+          failure("UNMATCH_CONFLICT", "Eşleşme seçilen kayıtlarla uyuşmuyor."),
+        );
+      }
 
-      const count = await transaction.deleteMatch(match.id, match.vrRecordId);
+      const count = await transaction.deleteMatch(
+        match.id,
+        match.vrRecordId,
+        match.qrRegistrationId,
+      );
       if (count !== 1) {
         throw new DeleteMatchDomainError(
           failure(
@@ -144,7 +184,7 @@ export async function deleteStudentMatch(
 
       return {
         ok: true as const,
-        message: "Eşleşme kaldırıldı. Ana kayıtlar silinmedi.",
+        message: "Eşleşme başarıyla kaldırıldı.",
       };
     });
   } catch (error) {

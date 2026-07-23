@@ -59,7 +59,7 @@ export async function getVrMatchTarget(id: string, eventId?: string) {
   const { prisma } = await import("@/lib/prisma");
   const record = await prisma.vrRecord.findFirst({ where: { id, ...(eventId ? { eventId } : {}) }, select: {
     id: true, firstName: true, lastName: true, school: true, phone: true,
-    studentMatch: { select: { id: true, matchedAt: true, qrRegistration: { select: { firstName: true, lastName: true, school: true, schoolRelation: { select: { name: true } }, phone: true, guardianName: true, registeredAt: true, qrCode: { select: { serialNumber: true } } } } } },
+    studentMatch: { select: { id: true, matchedAt: true, qrRegistration: { select: { id: true, firstName: true, lastName: true, school: true, schoolRelation: { select: { name: true } }, phone: true, guardianName: true, registeredAt: true, qrCode: { select: { serialNumber: true } } } } } },
   } });
   if (record?.studentMatch) record.studentMatch.qrRegistration.school = resolveSchoolDisplayName(record.studentMatch.qrRegistration.schoolRelation, record.studentMatch.qrRegistration.school);
   return record;

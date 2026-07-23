@@ -16,6 +16,7 @@ describe("DeleteMatchButton", () => {
       <DeleteMatchButton
         matchId="match_1"
         vrRecordId="vr_1"
+        qrRegistrationId="registration_1"
         vrStudentName="Ayşe Yılmaz"
         qrStudentName="Ayşe Yılmaz"
       />,

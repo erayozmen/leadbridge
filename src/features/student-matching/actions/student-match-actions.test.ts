@@ -22,6 +22,7 @@ function formData() {
   const data = new FormData();
   data.set("matchId", "match_1");
   data.set("vrRecordId", "vr_1");
+  data.set("qrRegistrationId", "registration_1");
   data.set("reason", "Yanlış öğrenciler eşleştirildi");
   return data;
 }
@@ -41,6 +42,7 @@ describe("deleteStudentMatchAction", () => {
     expect(deleteStudentMatch).toHaveBeenCalledWith({
       matchId: "match_1",
       vrRecordId: "vr_1",
+      qrRegistrationId: "registration_1",
       reason: "Yanlış öğrenciler eşleştirildi",
     });
   });

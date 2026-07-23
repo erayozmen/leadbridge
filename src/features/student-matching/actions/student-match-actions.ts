@@ -68,6 +68,7 @@ export async function deleteStudentMatchAction(
   const result = await deleteStudentMatch({
     matchId: text(formData, "matchId"),
     vrRecordId: text(formData, "vrRecordId"),
+    qrRegistrationId: text(formData, "qrRegistrationId"),
     reason,
   });
   if (!result.ok) return { status: "error", message: result.message };
