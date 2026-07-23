@@ -2,7 +2,6 @@ import "server-only";
 
 import { EventStatus, UserRole, type User } from "@prisma/client";
 import { cookies } from "next/headers";
-import { cache } from "react";
 import { requireActiveUser } from "@/features/auth/server/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -34,9 +33,10 @@ export async function listSelectableEvents(role: User["role"]) {
   });
 }
 
-async function loadSelectedEvent(
-  appUser: Awaited<ReturnType<typeof requireActiveUser>>,
+export async function getSelectedEvent(
+  user?: Awaited<ReturnType<typeof requireActiveUser>>,
 ): Promise<EventContext | null> {
+  const appUser = user ?? (await requireActiveUser());
   const selectedEventId = (await cookies()).get(EVENT_COOKIE)?.value;
   if (!selectedEventId) return null;
   return prisma.event.findFirst({
@@ -56,20 +56,11 @@ async function loadSelectedEvent(
   });
 }
 
-const getRequestSelectedEvent = cache(async () =>
-  loadSelectedEvent(await requireActiveUser()),
-);
-
-export async function getSelectedEvent(
-  user?: Awaited<ReturnType<typeof requireActiveUser>>,
-): Promise<EventContext | null> {
-  return user ? loadSelectedEvent(user) : getRequestSelectedEvent();
-}
-
 export async function requireSelectedEvent(
   options: { operational?: boolean } = {},
 ): Promise<EventContext> {
-  const event = await getSelectedEvent();
+  const user = await requireActiveUser();
+  const event = await getSelectedEvent(user);
   if (!event) throw new EventContextError("EVENT_REQUIRED");
   if (options.operational && event.status !== EventStatus.ACTIVE)
     throw new EventContextError("EVENT_NOT_OPERATIONAL");
