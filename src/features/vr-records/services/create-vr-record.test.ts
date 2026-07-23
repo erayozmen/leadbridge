@@ -51,7 +51,10 @@ describe("createVrRecord", () => {
 
     await createVrRecord({ ...validInput, createdByUserId: "client_user" } as typeof validInput, deps);
 
-    expect(deps.createRecord).toHaveBeenCalledWith(expect.objectContaining({ createdByUserId: admin.id }));
+    expect(deps.createRecord).toHaveBeenCalledWith(expect.objectContaining({
+      createdByUserId: admin.id,
+      eventId: "event_1",
+    }));
   });
 
   it("rejects invalid input before auth and database calls", async () => {

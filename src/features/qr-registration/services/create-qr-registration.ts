@@ -2,6 +2,7 @@ import "server-only";
 
 import { EventStatus, Prisma, QrCodeStatus, SchoolStatus } from "@prisma/client";
 
+import { isLegacyCompatibilityEvent } from "@/features/events/server/compatibility-event";
 import { hashQrToken } from "@/features/qr-registration/lib/hash-qr-token";
 import {
   type QrRegistrationData,
@@ -102,7 +103,11 @@ async function createRegistrationInTransaction(
     }
 
 
-    if ((qrCode.event?.status ?? EventStatus.ACTIVE) !== EventStatus.ACTIVE) {
+    const eventStatus = qrCode.event?.status ?? EventStatus.ACTIVE;
+    if (
+      eventStatus !== EventStatus.ACTIVE
+      && !isLegacyCompatibilityEvent(qrCode.eventId, eventStatus)
+    ) {
       throw new QrRegistrationDomainError(
         failure("QR_DISABLED", "This event is not accepting registrations."),
       );

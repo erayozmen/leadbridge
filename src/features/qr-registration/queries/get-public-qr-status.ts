@@ -2,6 +2,7 @@ import "server-only";
 
 import { EventStatus, QrCodeStatus } from "@prisma/client";
 
+import { isLegacyCompatibilityEvent } from "@/features/events/server/compatibility-event";
 import { hashQrToken } from "@/features/qr-registration/lib/hash-qr-token";
 import { qrRegistrationSchema } from "@/features/qr-registration/schemas/qr-registration.schema";
 
@@ -15,6 +16,7 @@ export type PublicQrStatus =
   | "INTERNAL_ERROR";
 
 type PublicQrRecord = {
+  eventId?: string;
   status: QrCodeStatus;
   archived: boolean;
   hasAssignedVrRecord: boolean;
@@ -33,6 +35,7 @@ async function getDefaultDependencies(): Promise<PublicQrStatusDependencies> {
       const qrCode = await prisma.qrCode.findUnique({
         where: { tokenHash },
         select: {
+          eventId: true,
           status: true,
           event: { select: { status: true } },
           archivedAt: true,
@@ -41,7 +44,8 @@ async function getDefaultDependencies(): Promise<PublicQrStatusDependencies> {
         },
       });
       return qrCode
-        ? {
+          ? {
+            eventId: qrCode.eventId,
             status: qrCode.status,
             archived: Boolean(qrCode.archivedAt),
             hasAssignedVrRecord: Boolean(qrCode.assignedVrRecord),
@@ -64,7 +68,11 @@ export async function getPublicQrStatus(
     const resolved = dependencies ?? (await getDefaultDependencies());
     const qrCode = await resolved.findByTokenHash(hashQrToken(parsedToken.data));
     if (!qrCode) return "NOT_FOUND";
-    if ((qrCode.eventStatus ?? EventStatus.ACTIVE) !== EventStatus.ACTIVE) return "DISABLED";
+    const eventStatus = qrCode.eventStatus ?? EventStatus.ACTIVE;
+    if (
+      eventStatus !== EventStatus.ACTIVE
+      && !(qrCode.eventId && isLegacyCompatibilityEvent(qrCode.eventId, eventStatus))
+    ) return "DISABLED";
     if (qrCode.archived || qrCode.status === QrCodeStatus.DISABLED) return "DISABLED";
     if (qrCode.status === QrCodeStatus.USED || qrCode.hasRegistration) return "ALREADY_USED";
     if (qrCode.status !== QrCodeStatus.ASSIGNED || !qrCode.hasAssignedVrRecord) return "NOT_ASSIGNED";

@@ -5,7 +5,6 @@ import { z } from "zod";
 import { requireAdmin } from "@/features/auth/server/auth";
 import { requireSelectedEvent } from "@/features/events/server/event-context";
 import { normalizeSchoolName } from "@/features/schools/lib/normalize-school-name";
-import { NOTIFICATION_TYPES } from "@/features/notifications/constants/notification-types";
 import { prisma } from "@/lib/prisma";
 
 const MAX_BYTES=2*1024*1024,MAX_ROWS=500;
@@ -27,11 +26,6 @@ export async function importVrRecords(file:File,commit=false):Promise<VrImportRe
   if(errors.length)return{ok:false,message:"Mükerrer kayıtlar içe aktarılamaz.",errors};
   if(commit){
     await prisma.vrRecord.createMany({data:rows.map(row=>({eventId:event.id,firstName:row.firstName,lastName:row.lastName,school:row.school,schoolId:row.schoolId,phone:row.phone||null,createdByUserId:admin.id}))});
-    try {
-      await prisma.notification.create({data:{userId:admin.id,eventId:event.id,type:NOTIFICATION_TYPES.IMPORT_COMPLETED,title:"VR içe aktarma tamamlandı",message:`${rows.length} VR kaydı etkinliğe eklendi.`,relatedEntityType:"EVENT",relatedEntityId:event.id}});
-    } catch {
-      // Notification delivery is best-effort; the committed import remains authoritative.
-    }
   }
   return{ok:true,preview:!commit,validCount:rows.length,rows:rows.slice(0,100).map(({rowNumber,firstName,lastName,school})=>({rowNumber,firstName,lastName,school}))};
 }

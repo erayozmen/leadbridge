@@ -1,12 +1,11 @@
 import "server-only";
-import { EventStatus, UserRole } from "@prisma/client";
+import { EventStatus } from "@prisma/client";
 import { z } from "zod";
 import { AUDIT_ACTIONS } from "@/features/audit/constants/audit-actions";
 import { AUDIT_ENTITY_TYPES } from "@/features/audit/constants/audit-entity-types";
 import { validateAuditReason } from "@/features/audit/lib/validate-audit-input";
 import { writeAuditLog } from "@/features/audit/services/write-audit-log";
 import { requireAdmin } from "@/features/auth/server/auth";
-import { NOTIFICATION_TYPES } from "@/features/notifications/constants/notification-types";
 import { prisma } from "@/lib/prisma";
 
 const fields = z
@@ -100,7 +99,7 @@ export async function advanceEventStatus(
       rawReason,
     ) as string,
     actor = await requireAdmin();
-  const event = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     const current = await tx.event.findUnique({
       where: { id },
       select: { id: true, name: true, status: true },
@@ -123,23 +122,4 @@ export async function advanceEventStatus(
     });
     return updated;
   });
-  try {
-    const admins = await prisma.user.findMany({
-      where: { role: UserRole.ADMIN, status: "ACTIVE" },
-      select: { id: true },
-    });
-    if (admins.length)
-      await prisma.notification.createMany({
-        data: admins.map((admin) => ({
-          userId: admin.id,
-          eventId: event.id,
-          type: NOTIFICATION_TYPES.EVENT_STATUS_CHANGED,
-          title: "Etkinlik durumu değişti",
-          message: `${event.name} etkinliği ${event.status} durumuna geçti.`,
-          relatedEntityType: "EVENT",
-          relatedEntityId: event.id,
-        })),
-      });
-  } catch {}
-  return event;
 }

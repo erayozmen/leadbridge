@@ -1,4 +1,4 @@
-import { Prisma, QrCodeStatus, SchoolStatus } from "@prisma/client";
+import { EventStatus, Prisma, QrCodeStatus, SchoolStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 import { hashQrToken } from "@/features/qr-registration/lib/hash-qr-token";
@@ -25,6 +25,8 @@ type Options = {
   schoolFound?: boolean;
   schoolStatus?: SchoolStatus;
   archived?: boolean;
+  eventId?: string;
+  eventStatus?: EventStatus;
 };
 
 function createMockPrisma(options: Options = {}) {
@@ -35,6 +37,8 @@ function createMockPrisma(options: Options = {}) {
       ? null
       : {
           id: "qr_1",
+          eventId: options.eventId ?? "event_1",
+          event: { status: options.eventStatus ?? EventStatus.ACTIVE },
           status: state.status,
           archivedAt: options.archived ? new Date() : null,
           qrRegistration: options.existingRegistration ? { id: "registration_old" } : null,
@@ -82,6 +86,16 @@ describe("createQrRegistration", () => {
     expect(mock.state.status).toBe(QrCodeStatus.USED);
     expect(mock.state.usedAt).toBeInstanceOf(Date);
     expect(mock.calls.findUnique).toHaveBeenCalledWith(expect.objectContaining({ where: { tokenHash: hashQrToken(validInput.token) } }));
+  });
+  it("creates a registration on the completed legacy compatibility event", async () => {
+    const mock = createMockPrisma({
+      eventId: "leadbridge-legacy-event",
+      eventStatus: EventStatus.COMPLETED,
+    });
+    await expect(createQrRegistration(validInput, mock.prisma)).resolves.toMatchObject({ ok: true });
+    expect(mock.calls.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({ eventId: "leadbridge-legacy-event" }),
+    }));
   });
   it("rejects a CREATED QR", async () => {
     await expect(createQrRegistration(validInput, createMockPrisma({ status: QrCodeStatus.CREATED }).prisma)).resolves.toMatchObject({ ok: false, code: "QR_NOT_ASSIGNED" });

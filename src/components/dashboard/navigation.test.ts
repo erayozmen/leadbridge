@@ -12,12 +12,14 @@ describe("dashboard navigation", () => {
     expect(labels).toContain("Kullanıcılar");
     expect(labels).toContain("Okullar");
     expect(labels).toContain("Dil Kursu Kayıtları");
+    expect(labels).not.toContain("Etkinlikler");
+    expect(labels).not.toContain("Bildirimler");
   });
 
   it("limits STAFF navigation to operational modules", () => {
     const labels = getDashboardNavigation("STAFF").map((item) => item.label);
 
-    expect(labels).toEqual(["Bildirimler", "VR Kaydı", "VR İzleyenler", "Etkinlik Katılımı", "QR Tarayıcı"]);
+    expect(labels).toEqual(["VR Kaydı", "VR İzleyenler", "Etkinlik Katılımı", "QR Tarayıcı"]);
     expect(labels).not.toContain("Raporlar");
     expect(labels).not.toContain("Kullanıcılar");
     expect(labels).not.toContain("Okullar");

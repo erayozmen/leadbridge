@@ -66,4 +66,16 @@ describe("dashboard overview summary query", () => {
     expect(state.countQrRegistrations).toHaveBeenNthCalledWith(2, { attendedEvent: true });
     expect(state.countQrRegistrations).toHaveBeenNthCalledWith(3, { enrolledCourse: true });
   });
+
+  it("scopes metrics to the server-resolved compatibility event", async () => {
+    const state = dependencies();
+    state.getEventId = vi.fn(async () => "leadbridge-legacy-event");
+    await getDashboardOverviewSummary(state);
+    expect(state.countVrRecords).toHaveBeenCalledWith({
+      eventId: "leadbridge-legacy-event",
+    });
+    expect(state.countQrRegistrations).toHaveBeenNthCalledWith(1, {
+      eventId: "leadbridge-legacy-event",
+    });
+  });
 });

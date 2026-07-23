@@ -1,4 +1,4 @@
-import { QrCodeStatus } from "@prisma/client";
+import { EventStatus, QrCodeStatus } from "@prisma/client";
 import { describe, expect, it, vi } from "vitest";
 
 import { getPublicQrStatus, type PublicQrStatusDependencies } from "@/features/qr-registration/queries/get-public-qr-status";
@@ -25,6 +25,18 @@ function dependencies(
 describe("getPublicQrStatus", () => {
   it("returns AVAILABLE for an ASSIGNED QR linked to a VR record", async () => {
     await expect(getPublicQrStatus(token, dependencies({ status: QrCodeStatus.ASSIGNED, hasAssignedVrRecord: true, hasRegistration: false }))).resolves.toBe("AVAILABLE");
+  });
+  it("keeps the completed legacy event available in compatibility mode", async () => {
+    await expect(getPublicQrStatus(token, {
+      findByTokenHash: vi.fn(async () => ({
+        eventId: "leadbridge-legacy-event",
+        eventStatus: EventStatus.COMPLETED,
+        status: QrCodeStatus.ASSIGNED,
+        archived: false,
+        hasAssignedVrRecord: true,
+        hasRegistration: false,
+      })),
+    })).resolves.toBe("AVAILABLE");
   });
   it("returns NOT_ASSIGNED for a CREATED QR", async () => {
     await expect(getPublicQrStatus(token, dependencies({ status: QrCodeStatus.CREATED, hasAssignedVrRecord: false, hasRegistration: false }))).resolves.toBe("NOT_ASSIGNED");
