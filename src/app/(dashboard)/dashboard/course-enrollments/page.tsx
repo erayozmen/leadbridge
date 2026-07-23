@@ -5,6 +5,7 @@ import {
   listCourseEnrollmentSchools,
 } from "@/features/course-enrollments/queries/list-course-enrollments";
 import { requireSelectedEvent } from "@/features/events/server/event-context";
+import { PageHeader } from "@/components/dashboard/page-header";
 
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
@@ -36,10 +37,7 @@ export default async function CourseEnrollmentsPage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <h1 className="text-3xl font-semibold">Dil Kursu Kayıtları</h1>
-      <p className="mt-2 text-muted-foreground">
-        QR kaydı bulunan öğrencilerin manuel dil kursu kayıt durumunu yönetin.
-      </p>
+      <PageHeader title="Dil Kursu Kayıtları" description="QR kaydı bulunan öğrencilerin manuel dil kursu kayıt durumunu yönetin." />
       <CourseEnrollmentWorkspace
         {...result}
         filters={filters}

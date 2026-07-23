@@ -4,6 +4,8 @@ import { getReportSummary } from "@/features/reports/queries/get-report-summary"
 import { EventFilter } from "@/features/events/components/event-filter";
 import { listEventFilterOptions, resolveEventFilter } from "@/features/events/server/event-filter";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { Button } from "@/components/ui/button";
 
 export default async function ReportsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireAdmin();
@@ -14,12 +16,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="text-3xl font-semibold">Raporlar</h1>
-      <p className="mt-2 max-w-3xl text-muted-foreground">
-        LeadBridge operasyon kayıtlarının mevcut ve güvenilir özetini görüntüleyin.
-      </p>
-      <div className="mt-6"><EventFilter events={events} selectedId={event.id} /></div>
-      <div className="mt-4"><a className="text-sm font-medium underline" href={`/dashboard/exports/vr-records?eventId=${encodeURIComponent(event.id)}`}>Seçili etkinliğin VR CSV dosyasını indir</a></div>
+      <PageHeader title="Raporlar" description="LeadBridge operasyon kayıtlarının mevcut ve güvenilir özetini görüntüleyin." actions={<Button asChild variant="outline"><a href={`/dashboard/exports/vr-records?eventId=${encodeURIComponent(event.id)}`}>VR CSV indir</a></Button>} />
+      <div className="mt-6 rounded-lg border bg-card p-4"><EventFilter events={events} selectedId={event.id} /></div>
       <ReportSummaryCards summary={summary} />
     </main>
   );

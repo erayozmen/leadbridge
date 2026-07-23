@@ -1,8 +1,9 @@
 import { EventStatus } from "@prisma/client";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/dashboard/page-header";
+import { StatusBadge } from "@/components/dashboard/status-badge";
 import { Input } from "@/components/ui/input";
 import { requireAdmin } from "@/features/auth/server/auth";
 import { prisma } from "@/lib/prisma";
@@ -25,8 +26,8 @@ export default async function EventsPage({ searchParams }: { searchParams: Searc
     orderBy: [{ eventDate: "desc" }, { createdAt: "desc" }],
   });
   return <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><h1 className="text-3xl font-semibold">Etkinlikler</h1><p className="mt-2 text-muted-foreground">Etkinlikleri ve yaşam döngülerini yönetin.</p></div><Button asChild><Link href="/dashboard/events/new">Yeni etkinlik</Link></Button></div>
-    <form className="mt-6 grid gap-3 sm:grid-cols-[1fr_220px_auto]" method="get"><Input name="query" defaultValue={query} placeholder="Etkinlik ara" maxLength={120} /><select name="status" defaultValue={status ?? ""} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="">Tüm durumlar</option>{Object.values(EventStatus).map((value) => <option key={value} value={value}>{value}</option>)}</select><Button type="submit">Filtrele</Button></form>
-    <div className="mt-8 grid gap-4">{events.map((event) => <Card key={event.id} className="p-5"><div className="flex flex-col justify-between gap-4 sm:flex-row"><div><div className="flex items-center gap-2"><h2 className="font-semibold">{event.name}</h2><Badge variant={event.status === "ARCHIVED" ? "secondary" : "default"}>{event.status}</Badge></div><p className="mt-2 text-sm text-muted-foreground">{event.eventDate.toLocaleString("tr-TR")} · {event.location}</p><p className="mt-2 text-sm">VR {event._count.vrRecords} · QR {event._count.qrCodes} · Kayıt {event._count.qrRegistrations}</p></div><Button asChild variant="outline"><Link href={`/dashboard/events/${event.id}`}>Yönet</Link></Button></div></Card>)}{events.length === 0 ? <Card className="p-10 text-center">Filtrelerle eşleşen etkinlik bulunamadı.</Card> : null}</div>
+    <PageHeader title="Etkinlikler" description="Etkinlikleri ve yaşam döngülerini yönetin." actions={<Button asChild><Link href="/dashboard/events/new">Yeni etkinlik</Link></Button>} />
+    <form className="mt-6 grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-[1fr_220px_auto]" method="get"><Input name="query" defaultValue={query} placeholder="Etkinlik ara" maxLength={120} /><select name="status" defaultValue={status ?? ""} className="h-10 rounded-md border bg-background px-3 text-sm"><option value="">Tüm durumlar</option>{Object.values(EventStatus).map((value) => <option key={value} value={value}>{value}</option>)}</select><Button type="submit">Filtrele</Button></form>
+    <div className="mt-8 grid gap-3">{events.map((event) => <Card key={event.id} className="p-5 transition-colors hover:border-primary/25"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-semibold">{event.name}</h2><StatusBadge status={event.status} /></div><p className="mt-2 text-sm text-muted-foreground">{event.eventDate.toLocaleString("tr-TR")} · {event.location}</p><p className="mt-3 text-sm font-medium">VR {event._count.vrRecords} · QR {event._count.qrCodes} · Kayıt {event._count.qrRegistrations}</p></div><Button asChild variant="outline"><Link href={`/dashboard/events/${event.id}`}>Yönet</Link></Button></div></Card>)}{events.length === 0 ? <Card className="p-10 text-center text-muted-foreground">Filtrelerle eşleşen etkinlik bulunamadı.</Card> : null}</div>
   </main>;
 }

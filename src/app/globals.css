@@ -44,38 +44,38 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --radius: 0.5rem;
+  --background: oklch(0.985 0.004 110);
+  --foreground: oklch(0.22 0.018 155);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.22 0.018 155);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.39 0.09 158);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.955 0.012 145);
+  --secondary-foreground: oklch(0.3 0.05 155);
+  --muted: oklch(0.958 0.006 110);
+  --muted-foreground: oklch(0.49 0.02 155);
+  --accent: oklch(0.94 0.025 150);
+  --accent-foreground: oklch(0.3 0.06 157);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.89 0.01 140);
+  --input: oklch(0.86 0.012 140);
+  --ring: oklch(0.56 0.1 158);
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar: oklch(0.97 0.01 145);
+  --sidebar-foreground: oklch(0.25 0.025 155);
+  --sidebar-primary: oklch(0.39 0.09 158);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-accent: oklch(0.925 0.03 150);
+  --sidebar-accent-foreground: oklch(0.3 0.06 157);
+  --sidebar-border: oklch(0.87 0.015 145);
+  --sidebar-ring: oklch(0.56 0.1 158);
 }
 
 .dark {
@@ -117,6 +117,23 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+  [data-dashboard-content] main {
+    @apply pb-12;
+  }
+  [data-dashboard-content] main > h1 {
+    @apply text-2xl font-semibold tracking-normal sm:text-3xl;
+  }
+  [data-dashboard-content] select,
+  [data-dashboard-content] textarea {
+    @apply rounded-md border border-input bg-background text-foreground shadow-xs outline-none transition-[border-color,box-shadow];
+  }
+  [data-dashboard-content] select:focus-visible,
+  [data-dashboard-content] textarea:focus-visible {
+    @apply border-ring ring-3 ring-ring/20;
+  }
+  [data-dashboard-content] form {
+    @apply scroll-mt-24;
   }
 }

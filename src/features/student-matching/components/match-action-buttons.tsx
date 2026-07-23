@@ -77,7 +77,7 @@ export function DeleteMatchButton({
   }
 
   return (
-    <div className="space-y-4 rounded-md border border-destructive/30 bg-destructive/5 p-4">
+    <div className="space-y-4 rounded-md border border-destructive/25 bg-destructive/5 p-4 shadow-xs">
       <div className="space-y-2 text-sm">
         <p><strong>VR kaydı:</strong> {vrStudentName}</p>
         <p><strong>QR kaydı:</strong> {qrStudentName}</p>

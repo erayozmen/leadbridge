@@ -38,7 +38,7 @@ export function ReverseCourseEnrollmentButton({
   }
 
   return (
-    <div className="min-w-72 space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+    <div className="min-w-72 space-y-3 rounded-md border border-destructive/25 bg-destructive/5 p-4 shadow-xs">
       <div className="space-y-1 text-xs">
         <p><strong>Öğrenci:</strong> {studentName}</p>
         <p className="leading-5 text-muted-foreground">

@@ -27,8 +27,8 @@ export function UserMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-10 gap-2 px-2" aria-label="Kullanıcı menüsünü aç">
-          <span className="grid size-8 place-items-center rounded-full bg-secondary">
+        <Button variant="ghost" className="h-11 max-w-[13rem] gap-2 border border-transparent px-2 hover:border-border hover:bg-card sm:max-w-none" aria-label="Kullanıcı menüsünü aç">
+          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-secondary text-secondary-foreground">
             <UserRound aria-hidden="true" className="size-4" />
           </span>
           <span className="hidden max-w-40 text-left sm:block">

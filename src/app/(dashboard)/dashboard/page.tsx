@@ -8,6 +8,7 @@ import { getDashboardOverviewSummary } from "@/features/reports/queries/get-dash
 import { EventFilter } from "@/features/events/components/event-filter";
 import { listEventFilterOptions, resolveEventFilter } from "@/features/events/server/event-filter";
 import { prisma } from "@/lib/prisma";
+import { PageHeader } from "@/components/dashboard/page-header";
 
 export const dashboardQuickActions: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "Yeni VR Kaydı", icon: Video, href: "/dashboard/vr-records/new" },
@@ -38,13 +39,11 @@ function QuickActions() {
 function StaffDashboard({ fullName }: { fullName: string }) {
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="max-w-2xl">
-        <Badge variant="secondary">Standart Kullanıcı</Badge>
-        <h1 className="mt-4 text-3xl font-semibold">Hoş geldiniz, {fullName}</h1>
-        <p className="mt-2 text-muted-foreground">
-          Günlük öğrenci ve etkinlik işlemlerine buradan erişebilirsiniz.
-        </p>
-      </div>
+      <PageHeader
+        title={`Hoş geldiniz, ${fullName}`}
+        description="Günlük öğrenci ve etkinlik işlemlerine buradan erişebilirsiniz."
+        eyebrow={<Badge variant="secondary">Standart Kullanıcı</Badge>}
+      />
       <section className="mt-10" aria-labelledby="quick-actions-title">
         <h2 id="quick-actions-title" className="mb-4 text-sm font-semibold">Hızlı işlemler</h2>
         <QuickActions />
@@ -69,7 +68,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6"><EventFilter events={events} selectedId={event.id} /></div>
+      <div className="mb-6 rounded-lg border bg-card p-4"><EventFilter events={events} selectedId={event.id} /></div>
       <AdminOverview summary={summary} />
       <section className="mt-6" aria-labelledby="quick-actions-title">
         <h2 id="quick-actions-title" className="mb-4 text-sm font-semibold">Hızlı işlemler</h2>

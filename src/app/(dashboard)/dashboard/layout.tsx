@@ -21,9 +21,9 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen bg-background">
       <AppSidebar role={user.role} />
-      <div className="min-h-screen lg:pl-64">
+      <div data-dashboard-content className="min-h-screen lg:pl-68">
         <DashboardHeader
           user={{ fullName: user.fullName, email: user.email, role: user.role }}
         />

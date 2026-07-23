@@ -25,12 +25,17 @@ export function MobileSidebar({ role }: { role: DashboardRole }) {
           <Menu />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-72 p-0" showCloseButton>
-        <SheetHeader className="border-b px-5 py-5 text-left">
-          <SheetTitle>LeadBridge</SheetTitle>
-          <SheetDescription>Öğrenci Dönüşüm ve Etkinlik Takip Sistemi</SheetDescription>
+      <SheetContent side="left" className="w-[min(19rem,88vw)] gap-0 bg-sidebar p-0 text-sidebar-foreground" showCloseButton>
+        <SheetHeader className="border-b border-sidebar-border px-5 py-5 text-left">
+          <div className="flex items-center gap-3">
+            <span className="grid size-9 place-items-center rounded-md bg-primary text-sm font-bold text-primary-foreground">LB</span>
+            <div>
+              <SheetTitle>LeadBridge</SheetTitle>
+              <SheetDescription>Operasyon merkezi</SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
-        <div className="overflow-y-auto py-4">
+        <div className="flex-1 overflow-y-auto py-4">
           <DashboardNavigation
             role={role}
             compact

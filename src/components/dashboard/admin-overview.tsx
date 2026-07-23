@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import Link from "next/link";
 import type { DashboardOverviewSummary } from "@/features/reports/types/dashboard-overview-summary";
+import { PageHeader } from "@/components/dashboard/page-header";
 
 export type OverviewMetric = {
   key: keyof DashboardOverviewSummary;
@@ -36,20 +37,20 @@ export function AdminOverview({ summary }: { summary: DashboardOverviewSummary }
 
   return (
     <>
-      <div>
-        <Badge variant="secondary">Yönetici görünümü</Badge>
-        <h1 className="mt-3 text-3xl font-semibold">Genel Bakış</h1>
-        <p className="mt-2 text-muted-foreground">
-          Günlük operasyon akışının temel kayıt sayılarını tek noktadan izleyin.
-        </p>
-      </div>
+      <PageHeader
+        title="Genel Bakış"
+        description="Günlük operasyon akışının temel kayıt sayılarını tek noktadan izleyin."
+        eyebrow={<Badge variant="secondary">Yönetici görünümü</Badge>}
+      />
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Operasyon metrikleri">
         {metrics.map(({ key, cardLabel, value, icon: Icon }) => (
-          <Card key={key} className="gap-4 rounded-lg py-5 shadow-none">
+          <Card key={key} className="group gap-4 py-5 transition-colors hover:border-primary/25">
             <CardHeader className="flex grid-cols-[1fr_auto] flex-row items-center justify-between gap-3 px-5">
               <CardDescription className="font-medium">{cardLabel}</CardDescription>
-              <Icon aria-hidden="true" className="size-4 text-muted-foreground" />
+              <span className="grid size-9 place-items-center rounded-md bg-secondary text-secondary-foreground transition-colors group-hover:bg-accent">
+                <Icon aria-hidden="true" className="size-4" />
+              </span>
             </CardHeader>
             <CardContent className="px-5">
               <p className="text-3xl font-semibold tabular-nums" aria-label={`${cardLabel}: ${value}`}>
@@ -70,7 +71,7 @@ export function AdminOverview({ summary }: { summary: DashboardOverviewSummary }
               ["Katıldı, kurs yok", summary.attendedNotEnrolled, "/dashboard/course-enrollments?attendance=attended&enrollment=not-enrolled"],
               ["Eşleşmemiş QR kaydı", summary.unmatchedRegistrations, "/dashboard/qr-registrations?matchStatus=unmatched"],
               ["Eşleşmemiş VR kaydı", summary.unmatchedVrRecords, "/dashboard/vr-records?matchStatus=unmatched"],
-            ].map(([label, value, href]) => <Link key={String(label)} href={String(href)} className="rounded-md border p-4 transition-colors hover:bg-muted"><span className="text-sm text-muted-foreground">{label}</span><strong className="mt-2 block text-2xl tabular-nums">{value}</strong></Link>)}
+            ].map(([label, value, href]) => <Link key={String(label)} href={String(href)} className="rounded-md border bg-background p-4 transition-colors hover:border-primary/25 hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"><span className="text-sm text-muted-foreground">{label}</span><strong className="mt-2 block text-2xl tabular-nums">{value}</strong></Link>)}
           </CardContent>
         </Card>
       </section>
@@ -84,7 +85,7 @@ export function AdminOverview({ summary }: { summary: DashboardOverviewSummary }
           <CardContent>
             <ol className="grid gap-3 sm:grid-cols-5">
               {metrics.map(({ key, funnelLabel, value }, index) => (
-                <li key={key} className="rounded-md border p-4">
+                <li key={key} className="rounded-md border bg-muted/25 p-4">
                   <span className="text-xs font-medium text-muted-foreground">Adım {index + 1}</span>
                   <p className="mt-2 text-sm font-medium">{funnelLabel}</p>
                   <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>

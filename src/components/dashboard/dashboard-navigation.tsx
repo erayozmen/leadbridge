@@ -95,10 +95,10 @@ export function DashboardNavigation({
             onClick={(event) => handleNavigationClick(event, onNavigate)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+              "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               isActive
-                ? "bg-foreground text-background"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary"
+                : "text-muted-foreground hover:bg-sidebar-accent/65 hover:text-sidebar-foreground",
             )}
           >
             {content}
@@ -107,7 +107,7 @@ export function DashboardNavigation({
           <div
             key={item.label}
             aria-disabled="true"
-            className="flex h-10 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm text-muted-foreground"
+            className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm text-muted-foreground"
           >
             {content}
           </div>

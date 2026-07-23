@@ -44,7 +44,7 @@ export function UnassignQrCodeButton({
   }
 
   return (
-    <div className="min-w-72 space-y-3 rounded-md border border-destructive/30 bg-destructive/5 p-3">
+    <div className="min-w-72 space-y-3 rounded-md border border-destructive/25 bg-destructive/5 p-4 shadow-xs">
       <div className="space-y-1 text-xs">
         <p><strong>QR:</strong> {serialNumber}</p>
         <p><strong>VR kaydı:</strong> {studentName}</p>
