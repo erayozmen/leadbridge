@@ -10,7 +10,7 @@ import { redactAuditData } from "@/features/audit/lib/redact-audit-data";
 import { listAuditLogs } from "@/features/audit/queries/list-audit-logs";
 
 const first = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
-const labels: Record<string, string> = { STUDENT_MATCH_REMOVED: "Öğrenci eşleşmesi kaldırıldı", QR_ASSIGNMENT_REVERSED: "QR ataması geri alındı", ATTENDANCE_REVERSED: "Katılım geri alındı", COURSE_ENROLLMENT_REVERSED: "Kurs kaydı geri alındı", USER_ROLE_CHANGED: "Kullanıcı rolü değişti", USER_STATUS_CHANGED: "Kullanıcı durumu değişti" };
+const labels: Record<string, string> = { STUDENT_MATCH_REMOVED: "Öğrenci eşleşmesi kaldırıldı", QR_ASSIGNMENT_REVERSED: "QR ataması geri alındı", ATTENDANCE_REVERSED: "Katılım geri alındı", COURSE_ENROLLMENT_REVERSED: "Kurs kaydı geri alındı", USER_ROLE_CHANGED: "Kullanıcı rolü değişti", USER_STATUS_CHANGED: "Kullanıcı durumu değişti", USER_CREATED: "Kullanıcı oluşturuldu", USER_ACCESS_REVOKED: "Kullanıcı erişimi kaldırıldı" };
 
 export default async function AuditLogsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;

@@ -10,6 +10,7 @@ type SupabaseEnv = Readonly<{
 }>;
 
 type ServerDatabaseEnvName = "DATABASE_URL" | "DIRECT_URL";
+type ServerAuthEnvName = "SUPABASE_SERVICE_ROLE_KEY";
 
 function readRequiredPublicEnv(name: PublicSupabaseEnvName): string {
   const value = process.env[name];
@@ -42,6 +43,17 @@ function readRequiredServerEnv(name: ServerDatabaseEnvName): string {
     throw new Error(`Missing required server environment variable: ${name}`);
   }
 
+  return value;
+}
+
+function readRequiredAuthEnv(name: ServerAuthEnvName): string {
+  if (typeof window !== "undefined") {
+    throw new Error("AUTH_ADMIN_NOT_CONFIGURED");
+  }
+  const value = process.env[name];
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error("AUTH_ADMIN_NOT_CONFIGURED");
+  }
   return value;
 }
 
@@ -90,4 +102,11 @@ export function getDatabaseUrl(): string {
 
 export function getDirectDatabaseUrl(): string {
   return readRequiredServerEnv("DIRECT_URL");
+}
+
+export function getSupabaseAdminEnv() {
+  return {
+    url: readSupabaseUrl(),
+    serviceRoleKey: readRequiredAuthEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  };
 }

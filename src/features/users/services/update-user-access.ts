@@ -28,6 +28,13 @@ export async function updateUserAccess(input: unknown): Promise<UpdateUserAccess
       if (!current) return { ok: false as const, message: "Kullanıcı bulunamadı." };
       const nextRole = parsed.data.role ?? current.role;
       const nextStatus = parsed.data.status ?? current.status;
+      if (nextStatus === UserStatus.ACTIVE && current.status === UserStatus.INACTIVE) {
+        const revoked = await tx.auditLog.findFirst({
+          where: { entityType: AUDIT_ENTITY_TYPES.USER, entityId: current.id, action: AUDIT_ACTIONS.USER_ACCESS_REVOKED },
+          select: { id: true },
+        });
+        if (revoked) return { ok: false as const, message: "Erişimi kalıcı olarak kaldırılmış kullanıcı yeniden aktifleştirilemez." };
+      }
       const removesAdmin = current.role === UserRole.ADMIN && current.status === UserStatus.ACTIVE && (nextRole !== UserRole.ADMIN || nextStatus !== UserStatus.ACTIVE);
       if (removesAdmin && await tx.user.count({ where: { role: UserRole.ADMIN, status: UserStatus.ACTIVE } }) <= 1) return { ok: false as const, message: "Son aktif yönetici değiştirilemez." };
       await tx.user.update({ where: { id: current.id }, data: { role: nextRole, status: nextStatus }, select: { id: true } });
