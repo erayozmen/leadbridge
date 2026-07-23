@@ -106,6 +106,12 @@ export async function advanceEventStatus(
     });
     if (!current || !isEventTransitionAllowed(current.status, nextStatus))
       throw new Error("INVALID_EVENT_TRANSITION");
+    if (nextStatus === EventStatus.ACTIVE) {
+      const activeCount = await tx.event.count({
+        where: { status: EventStatus.ACTIVE, id: { not: id } },
+      });
+      if (activeCount > 0) throw new Error("ACTIVE_EVENT_EXISTS");
+    }
     const updated = await tx.event.update({
       where: { id, status: current.status },
       data: { status: nextStatus },
@@ -121,5 +127,5 @@ export async function advanceEventStatus(
       afterData: { status: nextStatus },
     });
     return updated;
-  });
+  }, { isolationLevel: "Serializable" });
 }

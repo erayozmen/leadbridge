@@ -57,6 +57,12 @@ describe("createVrRecord", () => {
     }));
   });
 
+  it("uses a validated requested event when one is selected", async () => {
+    const deps = createDependencies();
+    await createVrRecord({ ...validInput, eventId: "event_2" }, deps);
+    expect(deps.getOperationalEventId).toHaveBeenCalledWith("event_2");
+  });
+
   it("rejects invalid input before auth and database calls", async () => {
     const deps = createDependencies();
     const result = await createVrRecord({ ...validInput, firstName: "" }, deps);

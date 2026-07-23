@@ -25,9 +25,12 @@ describe("createVrRecordAction authorization", () => {
   });
 
   it("allows STAFF or ADMIN through the action boundary", async () => {
-    await createVrRecordAction(initial, new FormData());
+    const form = new FormData();
+    form.set("eventId", "event_2");
+    await createVrRecordAction(initial, form);
     expect(requireStaffOrAdmin).toHaveBeenCalledOnce();
     expect(createVrRecord).toHaveBeenCalledOnce();
+    expect(createVrRecord).toHaveBeenCalledWith(expect.objectContaining({ eventId: "event_2" }));
   });
 
   it("rejects unauthorized callers before mutation", async () => {

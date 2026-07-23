@@ -1,5 +1,5 @@
 export type VrRecordFieldErrors = Partial<
-  Record<"firstName" | "lastName" | "schoolId" | "phone", string[]>
+  Record<"eventId" | "firstName" | "lastName" | "schoolId" | "phone", string[]>
 >;
 
 export type CreateVrRecordResult =

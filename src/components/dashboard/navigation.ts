@@ -8,6 +8,7 @@ export type DashboardNavItem = {
 };
 
 const adminNavigation: DashboardNavItem[] = [
+  { label: "Etkinlikler", icon: "events", href: "/dashboard/events" },
   { label: "Genel Bakış", icon: "overview", href: "/dashboard" },
   { label: "VR Kaydı", icon: "vr", href: "/dashboard/vr-records/new" },
   { label: "VR CSV İçe Aktar", icon: "vr", href: "/dashboard/vr-records/import" },

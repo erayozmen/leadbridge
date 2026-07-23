@@ -18,6 +18,7 @@ const optionalPhone = z
   .transform((value) => (value.length === 0 ? null : value));
 
 export const vrRecordSchema = z.object({
+  eventId: z.string().trim().max(200).optional(),
   firstName: requiredText("Ad", 80),
   lastName: requiredText("Soyad", 80),
   schoolId: requiredText("Okul", 100),

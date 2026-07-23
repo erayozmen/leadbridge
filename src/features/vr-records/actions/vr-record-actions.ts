@@ -28,6 +28,7 @@ export async function createVrRecordAction(
   }
 
   const result = await createVrRecord({
+    eventId: getTextField(formData, "eventId") || undefined,
     firstName: getTextField(formData, "firstName"),
     lastName: getTextField(formData, "lastName"),
     schoolId: getTextField(formData, "schoolId"),

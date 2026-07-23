@@ -5,8 +5,15 @@ const { requireAdmin, getReportSummary } = vi.hoisted(() => ({
   getReportSummary: vi.fn(),
 }));
 
+vi.mock("server-only", () => ({}));
+
 vi.mock("@/features/auth/server/auth", () => ({ requireAdmin }));
 vi.mock("@/features/reports/queries/get-report-summary", () => ({ getReportSummary }));
+vi.mock("@/features/events/server/event-filter", () => ({
+  resolveEventFilter: vi.fn(async () => ({ id: "event_1", name: "Etkinlik", status: "ACTIVE" })),
+  listEventFilterOptions: vi.fn(async () => [{ id: "event_1", name: "Etkinlik", status: "ACTIVE" }]),
+}));
+vi.mock("@/lib/prisma", () => ({ prisma: { school: { count: vi.fn() }, qrCode: { count: vi.fn() }, vrRecord: { count: vi.fn() }, qrRegistration: { count: vi.fn() }, studentMatch: { count: vi.fn() } } }));
 
 import ReportsPage from "@/app/(dashboard)/dashboard/reports/page";
 
@@ -24,7 +31,7 @@ describe("reports page authorization", () => {
   });
 
   it("checks ADMIN access before loading the report", async () => {
-    await ReportsPage();
+    await ReportsPage({ searchParams: Promise.resolve({}) });
     expect(requireAdmin).toHaveBeenCalledOnce();
     expect(getReportSummary).toHaveBeenCalledOnce();
     expect(requireAdmin.mock.invocationCallOrder[0]).toBeLessThan(
@@ -34,7 +41,7 @@ describe("reports page authorization", () => {
 
   it("does not query report data when route authorization fails", async () => {
     requireAdmin.mockRejectedValue(new Error("forbidden"));
-    await expect(ReportsPage()).rejects.toThrow("forbidden");
+    await expect(ReportsPage({ searchParams: Promise.resolve({}) })).rejects.toThrow("forbidden");
     expect(getReportSummary).not.toHaveBeenCalled();
   });
 });

@@ -21,7 +21,7 @@ type VrRecordCreateData = {
 export type CreateVrRecordDependencies = {
   requireUser: () => Promise<AppUser>;
   findActiveSchool: (id: string) => Promise<{ id: string; name: string } | null>;
-  getOperationalEventId: () => Promise<string>;
+  getOperationalEventId: (requestedEventId?: string) => Promise<string>;
   createRecord: (data: VrRecordCreateData) => Promise<{
     id: string;
     firstName: string;
@@ -41,8 +41,15 @@ async function getDefaultDependencies(): Promise<CreateVrRecordDependencies> {
 
   return {
     requireUser: requireStaffOrAdmin,
-    getOperationalEventId: async () =>
-      (await requireSelectedEvent({ operational: true })).id,
+    getOperationalEventId: async (requestedEventId) => {
+      if (!requestedEventId) return (await requireSelectedEvent({ operational: true })).id;
+      const event = await prisma.event.findFirst({
+        where: { id: requestedEventId, OR: [{ status: "ACTIVE" }, { id: "leadbridge-legacy-event", status: "COMPLETED" }] },
+        select: { id: true },
+      });
+      if (!event) throw new Error("EVENT_NOT_OPERATIONAL");
+      return event.id;
+    },
     findActiveSchool: (id) => prisma.school.findFirst({ where: { id, status: "ACTIVE" }, select: { id: true, name: true } }),
     createRecord(data) {
       return prisma.vrRecord.create({
@@ -78,7 +85,7 @@ export async function createVrRecord(
   try {
     const resolved = dependencies ?? (await getDefaultDependencies());
     const user = await resolved.requireUser();
-    const eventId = await resolved.getOperationalEventId();
+    const eventId = await resolved.getOperationalEventId(parsedInput.data.eventId);
     const school = await resolved.findActiveSchool(parsedInput.data.schoolId);
     if (!school) return { ok: false, code: "INVALID_INPUT", message: "Seçilen okul aktif değil veya bulunamadı.", fieldErrors: { schoolId: ["Aktif bir okul seçin."] } };
     const record = await resolved.createRecord({

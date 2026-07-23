@@ -12,7 +12,7 @@ describe("dashboard navigation", () => {
     expect(labels).toContain("Kullanıcılar");
     expect(labels).toContain("Okullar");
     expect(labels).toContain("Dil Kursu Kayıtları");
-    expect(labels).not.toContain("Etkinlikler");
+    expect(labels).toContain("Etkinlikler");
     expect(labels).not.toContain("Bildirimler");
   });
 

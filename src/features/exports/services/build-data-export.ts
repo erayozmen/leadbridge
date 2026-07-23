@@ -36,9 +36,12 @@ export async function buildDataExport(
   )
     await requireAdmin();
   else await requireStaffOrAdmin();
+  const requestedEventId = text(params, "eventId", 200);
   const selectedEvent = ["schools", "audit-logs"].includes(type)
     ? null
-    : await requireSelectedEvent();
+    : requestedEventId
+      ? await prisma.event.findUnique({ where: { id: requestedEventId }, select: { id: true } }) ?? await requireSelectedEvent()
+      : await requireSelectedEvent();
   const eventWhere = selectedEvent ? { eventId: selectedEvent.id } : {};
   const date = new Date().toISOString().slice(0, 10);
   if (type === "vr-records") {

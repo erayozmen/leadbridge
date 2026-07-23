@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { AdminOverview } from "@/components/dashboard/admin-overview";
 import { requireActiveUser } from "@/features/auth/server/auth";
 import { getDashboardOverviewSummary } from "@/features/reports/queries/get-dashboard-overview-summary";
+import { EventFilter } from "@/features/events/components/event-filter";
+import { listEventFilterOptions, resolveEventFilter } from "@/features/events/server/event-filter";
+import { prisma } from "@/lib/prisma";
 
 export const dashboardQuickActions: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "Yeni VR Kaydı", icon: Video, href: "/dashboard/vr-records/new" },
@@ -50,14 +53,23 @@ function StaffDashboard({ fullName }: { fullName: string }) {
   );
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const user = await requireActiveUser();
   if (user.role === "STAFF") return <StaffDashboard fullName={user.fullName} />;
-
-  const summary = await getDashboardOverviewSummary();
+  const params = await searchParams;
+  const rawEventId = Array.isArray(params.eventId) ? params.eventId[0] : params.eventId;
+  const [event, events] = await Promise.all([resolveEventFilter(rawEventId), listEventFilterOptions()]);
+  const summary = await getDashboardOverviewSummary({
+    requireAdmin: async () => user,
+    getEventId: async () => event.id,
+    countVrRecords: (where) => prisma.vrRecord.count({ where }),
+    countQrCodes: (where) => prisma.qrCode.count({ where }),
+    countQrRegistrations: (where) => prisma.qrRegistration.count({ where }),
+  });
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6"><EventFilter events={events} selectedId={event.id} /></div>
       <AdminOverview summary={summary} />
       <section className="mt-6" aria-labelledby="quick-actions-title">
         <h2 id="quick-actions-title" className="mb-4 text-sm font-semibold">Hızlı işlemler</h2>

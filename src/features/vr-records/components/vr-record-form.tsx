@@ -16,7 +16,7 @@ function FieldError({ errors }: { errors?: string[] }) {
   return errors?.[0] ? <p className="text-xs text-destructive">{errors[0]}</p> : null;
 }
 
-export function VrRecordForm({ schools }: { schools: Array<{ id: string; name: string }> }) {
+export function VrRecordForm({ schools, events }: { schools: Array<{ id: string; name: string }>; events: Array<{ id: string; name: string }> }) {
   const [state, action, pending] = useActionState(createVrRecordAction, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -26,6 +26,14 @@ export function VrRecordForm({ schools }: { schools: Array<{ id: string; name: s
 
   return (
     <form ref={formRef} action={action} className="grid gap-5">
+      <div className="grid gap-2">
+        <Label htmlFor="eventId">Etkinlik</Label>
+        <select id="eventId" name="eventId" className="h-11 rounded-md border bg-background px-3 text-sm" disabled={pending}>
+          <option value="">Aktif etkinliği kullan</option>
+          {events.map((event) => <option key={event.id} value={event.id}>{event.name}</option>)}
+        </select>
+        <FieldError errors={state.fieldErrors?.eventId} />
+      </div>
       <div className="grid gap-2">
         <Label htmlFor="firstName">Ad</Label>
         <Input id="firstName" name="firstName" autoComplete="given-name" maxLength={80} required disabled={pending} aria-invalid={Boolean(state.fieldErrors?.firstName)} />
