@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { ClipboardCheck } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { AttendanceList } from "@/features/attendance/components/attendance-list";
 import { listAttendanceRegistrations } from "@/features/attendance/queries/list-attendance-registrations";
@@ -35,7 +36,7 @@ export default async function AttendancePage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="Etkinlik Katılımı" description="QR kaydı bulunan öğrencileri arayın ve katılım durumlarını güvenli biçimde yönetin." />
+      <PageHeader icon={ClipboardCheck} title="Etkinlik Katılımı" description="QR kaydı bulunan öğrencileri arayın ve katılım durumlarını güvenli biçimde yönetin." />
       <Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none">
         <AttendanceList {...result} filters={filters} userRole={user.role} />
       </Card>

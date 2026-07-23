@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { UsersRound } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,7 +17,7 @@ export default async function UsersPage() {
   ]);
 
   return <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-    <PageHeader title="Kullanıcılar" description="Rol, hesap durumu ve uygulama erişimini denetimli işlemlerle yönetin." />
+    <PageHeader icon={UsersRound} title="Kullanıcılar" description="Rol, hesap durumu ve uygulama erişimini denetimli işlemlerle yönetin." />
     <Card className="mt-8 p-5"><h2 className="mb-4 font-semibold">Yeni Kullanıcı</h2><CreateUserForm /></Card>
     <Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none"><div className="overflow-x-auto"><Table>
       <TableHeader><TableRow><TableHead>Kullanıcı</TableHead><TableHead>Rol</TableHead><TableHead>Durum</TableHead><TableHead>Oluşturulma</TableHead><TableHead>Yönetim</TableHead></TableRow></TableHeader>

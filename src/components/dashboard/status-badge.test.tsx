@@ -11,6 +11,8 @@ describe("StatusBadge", () => {
     ["ADMIN", "Yönetici"],
     ["STAFF", "Personel"],
   ])("renders %s with its Turkish label", (status, label) => {
-    expect(renderToStaticMarkup(<StatusBadge status={status} />)).toContain(label);
+    const html = renderToStaticMarkup(<StatusBadge status={status} />);
+    expect(html).toContain(label);
+    expect(html).toContain("rounded-full");
   });
 });

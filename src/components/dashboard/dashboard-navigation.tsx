@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { MouseEvent } from "react";
+import { Fragment, type MouseEvent } from "react";
 
 import {
   getDashboardNavigation,
@@ -71,10 +71,13 @@ export function DashboardNavigation({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const groupLabels = role === "ADMIN"
+    ? new Map([[0, "Etkinlik"], [1, "Operasyon"], [9, "Yönetim ve raporlama"]])
+    : new Map([[0, "Operasyon"]]);
 
   return (
     <nav aria-label="Ana menü" className={cn("space-y-1", compact && "px-2")}>
-      {getDashboardNavigation(role).map((item) => {
+      {getDashboardNavigation(role).map((item, index) => {
         const Icon = icons[item.icon];
         const content = (
           <>
@@ -88,29 +91,36 @@ export function DashboardNavigation({
 
         const isActive = item.href === pathname;
 
-        return item.href ? (
+        return (
+          <Fragment key={item.label}>
+            {groupLabels.has(index) ? (
+              <p className="px-3 pb-1 pt-3 text-[10px] font-semibold text-sidebar-foreground/45 uppercase">
+                {groupLabels.get(index)}
+              </p>
+            ) : null}
+            {item.href ? (
           <Link
-            key={item.label}
             href={item.href}
             onClick={(event) => handleNavigationClick(event, onNavigate)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+              "relative flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium transition-[background-color,color,box-shadow,transform] duration-200 outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
               isActive
-                ? "bg-sidebar-accent text-sidebar-accent-foreground before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-primary"
-                : "text-muted-foreground hover:bg-sidebar-accent/65 hover:text-sidebar-foreground",
+                ? "bg-white/12 text-white shadow-[inset_0_1px_rgb(255_255_255/0.08),0_6px_18px_rgb(3_20_35/0.2)] before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-full before:bg-emerald-300"
+                : "text-sidebar-foreground/64 hover:translate-x-0.5 hover:bg-white/7 hover:text-white",
             )}
           >
             {content}
           </Link>
         ) : (
           <div
-            key={item.label}
             aria-disabled="true"
             className="flex min-h-11 cursor-not-allowed items-center gap-3 rounded-md px-3 text-sm text-muted-foreground"
           >
             {content}
           </div>
+            )}
+          </Fragment>
         );
       })}
     </nav>

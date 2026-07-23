@@ -5,12 +5,14 @@ import {
   UserRoundCheck,
   Video,
   type LucideIcon,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import Link from "next/link";
 import type { DashboardOverviewSummary } from "@/features/reports/types/dashboard-overview-summary";
-import { PageHeader } from "@/components/dashboard/page-header";
 
 export type OverviewMetric = {
   key: keyof DashboardOverviewSummary;
@@ -32,28 +34,67 @@ export function buildDashboardOverviewMetrics(
   ];
 }
 
-export function AdminOverview({ summary }: { summary: DashboardOverviewSummary }) {
+export function AdminOverview({
+  summary,
+  eventName = "LeadBridge operasyonu",
+}: {
+  summary: DashboardOverviewSummary;
+  eventName?: string;
+}) {
   const metrics = buildDashboardOverviewMetrics(summary);
 
   return (
     <>
-      <PageHeader
-        title="Genel Bakış"
-        description="Günlük operasyon akışının temel kayıt sayılarını tek noktadan izleyin."
-        eyebrow={<Badge variant="secondary">Yönetici görünümü</Badge>}
-      />
+      <section className="relative overflow-hidden rounded-lg bg-[#0b3437] px-5 py-7 text-white shadow-[0_20px_50px_rgb(7_48_54/0.18)] sm:px-7 sm:py-8" aria-labelledby="dashboard-title">
+        <div aria-hidden="true" className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgb(255_255_255/0.08)_1px,transparent_1px),linear-gradient(90deg,rgb(255_255_255/0.07)_1px,transparent_1px)] [background-size:36px_36px]" />
+        <div className="relative grid gap-7 lg:grid-cols-[1.35fr_1fr] lg:items-end">
+          <div>
+            <Badge className="border-emerald-200/20 bg-emerald-200/10 text-emerald-100 hover:bg-emerald-200/10">
+              <Sparkles aria-hidden="true" />
+              Yönetici görünümü
+            </Badge>
+            <p className="mt-5 text-xs font-semibold text-emerald-200 uppercase">Güncel etkinlik · {eventName}</p>
+            <h1 id="dashboard-title" className="mt-2 max-w-2xl text-3xl font-semibold text-balance sm:text-4xl">
+              Operasyonun tamamı tek bakışta.
+            </h1>
+            <p className="mt-3 max-w-xl text-sm leading-6 text-white/65 sm:text-base">
+              VR deneyiminden etkinlik katılımına uzanan öğrenci akışını güvenilir verilerle yönetin.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Button asChild className="bg-emerald-300 text-emerald-950 shadow-lg hover:bg-emerald-200">
+                <Link href="/dashboard/vr-records/new">Yeni VR kaydı <ArrowRight aria-hidden="true" /></Link>
+              </Button>
+              <Button asChild variant="outline" className="border-white/20 bg-white/7 text-white hover:bg-white/12 hover:text-white">
+                <Link href="/dashboard/reports">Raporları aç</Link>
+              </Button>
+            </div>
+          </div>
+          <dl className="grid grid-cols-3 gap-2 rounded-lg border border-white/10 bg-white/6 p-3 backdrop-blur-sm">
+            {[
+              ["QR kayıt", summary.totalQrRegistrations],
+              ["Katılım", summary.attendedRegistrations],
+              ["Kurs", summary.courseEnrollments],
+            ].map(([label, value]) => (
+              <div key={String(label)} className="min-w-0 rounded-md border border-white/8 bg-black/8 px-3 py-4">
+                <dt className="truncate text-[11px] text-white/55">{label}</dt>
+                <dd className="mt-1 text-2xl font-semibold tabular-nums">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Operasyon metrikleri">
         {metrics.map(({ key, cardLabel, value, icon: Icon }) => (
-          <Card key={key} className="group gap-4 py-5 transition-colors hover:border-primary/25">
+          <Card key={key} className="group gap-4 overflow-hidden py-5 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_38px_rgb(15_23_42/0.09)]">
             <CardHeader className="flex grid-cols-[1fr_auto] flex-row items-center justify-between gap-3 px-5">
               <CardDescription className="font-medium">{cardLabel}</CardDescription>
-              <span className="grid size-9 place-items-center rounded-md bg-secondary text-secondary-foreground transition-colors group-hover:bg-accent">
+              <span className="grid size-10 place-items-center rounded-md border border-primary/10 bg-secondary text-secondary-foreground transition-colors group-hover:bg-accent">
                 <Icon aria-hidden="true" className="size-4" />
               </span>
             </CardHeader>
             <CardContent className="px-5">
-              <p className="text-3xl font-semibold tabular-nums" aria-label={`${cardLabel}: ${value}`}>
+              <p className="text-3xl font-semibold tabular-nums sm:text-4xl" aria-label={`${cardLabel}: ${value}`}>
                 {value}
               </p>
             </CardContent>

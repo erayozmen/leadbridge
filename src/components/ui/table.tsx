@@ -8,7 +8,7 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin]"
+      className="relative w-full overflow-x-auto overscroll-x-contain bg-card/80 [background-image:linear-gradient(to_right,var(--card),transparent_1rem),linear-gradient(to_left,var(--card),transparent_1rem)] [background-position:left_center,right_center] [background-repeat:no-repeat] [background-size:2rem_100%] [scrollbar-width:thin]"
     >
       <table
         data-slot="table"
@@ -23,7 +23,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("bg-muted/55 [&_tr]:border-b", className)}
+      className={cn("bg-slate-50/90 [&_tr]:border-b", className)}
       {...props}
     />
   )
@@ -57,7 +57,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b border-border/70 transition-colors hover:bg-accent/45 has-aria-expanded:bg-muted/60 data-[state=selected]:bg-muted",
+        "border-b border-border/60 transition-colors duration-150 hover:bg-emerald-50/45 has-aria-expanded:bg-muted/60 data-[state=selected]:bg-muted",
         className
       )}
       {...props}

@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/features/auth/server/auth";
+import { ChartNoAxesCombined } from "lucide-react";
 import { ReportSummaryCards } from "@/features/reports/components/report-summary-cards";
 import { getReportSummary } from "@/features/reports/queries/get-report-summary";
 import { EventFilter } from "@/features/events/components/event-filter";
@@ -16,8 +17,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="Raporlar" description="LeadBridge operasyon kayıtlarının mevcut ve güvenilir özetini görüntüleyin." actions={<Button asChild variant="outline"><a href={`/dashboard/exports/vr-records?eventId=${encodeURIComponent(event.id)}`}>VR CSV indir</a></Button>} />
-      <div className="mt-6 rounded-lg border bg-card p-4"><EventFilter events={events} selectedId={event.id} /></div>
+      <PageHeader icon={ChartNoAxesCombined} title="Raporlar" description="LeadBridge operasyon kayıtlarının mevcut ve güvenilir özetini görüntüleyin." actions={<Button asChild variant="outline"><a href={`/dashboard/exports/vr-records?eventId=${encodeURIComponent(event.id)}`}>VR CSV indir</a></Button>} />
+      <div className="mt-6 rounded-lg border border-white/80 bg-card/90 p-4 shadow-sm"><EventFilter events={events} selectedId={event.id} /></div>
       <ReportSummaryCards summary={summary} />
     </main>
   );

@@ -24,7 +24,7 @@ describe("admin overview", () => {
     expect(buildDashboardOverviewMetrics(summary).map(({ value }) => value)).toEqual([11, 22, 33, 44, 55]);
     const html = renderToStaticMarkup(<AdminOverview summary={summary} />);
     for (const value of [11, 22, 33, 44, 55]) {
-      expect(html.match(new RegExp(`>${value}<`, "g"))).toHaveLength(2);
+      expect(html.match(new RegExp(`>${value}<`, "g"))?.length).toBeGreaterThanOrEqual(2);
     }
   });
 

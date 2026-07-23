@@ -69,7 +69,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 rounded-lg border bg-card p-4"><EventFilter events={events} selectedId={event.id} /></div>
-      <AdminOverview summary={summary} />
+      <AdminOverview summary={summary} eventName={event.name} />
       <section className="mt-6" aria-labelledby="quick-actions-title">
         <h2 id="quick-actions-title" className="mb-4 text-sm font-semibold">Hızlı işlemler</h2>
         <QuickActions />

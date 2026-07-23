@@ -1,4 +1,5 @@
 import { Card } from "@/components/ui/card";
+import { Video } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { requireStaffOrAdmin } from "@/features/auth/server/auth";
 import { VrRecordList } from "@/features/vr-records/components/vr-record-list";
@@ -32,7 +33,7 @@ export default async function VrRecordsPage({ searchParams }: { searchParams: Se
   ]);
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <PageHeader title="VR İzleyenler" description="VR deneyimine katılan öğrencileri arayın, filtreleyin ve kayıt ilişkilerini yönetin." />
+      <PageHeader icon={Video} title="VR İzleyenler" description="VR deneyimine katılan öğrencileri arayın, filtreleyin ve kayıt ilişkilerini yönetin." />
       {user.role === "ADMIN" ? <div className="mt-6 rounded-lg border bg-card p-4"><EventFilter events={filterEvents} selectedId={event.id} /></div> : null}
       <Card className="mt-8 gap-0 overflow-hidden rounded-lg py-0 shadow-none">
         <div className="px-5 py-5"><h2 className="font-semibold">VR kayıtları</h2><p className="mt-1 text-sm text-muted-foreground">En yeni kayıtlar önce gösterilir.</p></div>

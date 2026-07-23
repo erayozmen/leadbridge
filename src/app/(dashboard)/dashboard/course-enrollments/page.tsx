@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/features/auth/server/auth";
+import { BookOpenCheck } from "lucide-react";
 import { CourseEnrollmentWorkspace } from "@/features/course-enrollments/components/course-enrollment-workspace";
 import {
   listCourseEnrollments,
@@ -37,7 +38,7 @@ export default async function CourseEnrollmentsPage({
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
-      <PageHeader title="Dil Kursu Kayıtları" description="QR kaydı bulunan öğrencilerin manuel dil kursu kayıt durumunu yönetin." />
+      <PageHeader icon={BookOpenCheck} title="Dil Kursu Kayıtları" description="QR kaydı bulunan öğrencilerin manuel dil kursu kayıt durumunu yönetin." />
       <CourseEnrollmentWorkspace
         {...result}
         filters={filters}
