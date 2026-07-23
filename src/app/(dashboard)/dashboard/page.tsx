@@ -1,9 +1,11 @@
 import { ClipboardCheck, Search, Video, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AdminOverview } from "@/components/dashboard/admin-overview";
 import { requireActiveUser } from "@/features/auth/server/auth";
+import { getSelectedEvent } from "@/features/events/server/event-context";
 import { getDashboardOverviewSummary } from "@/features/reports/queries/get-dashboard-overview-summary";
 
 export const dashboardQuickActions: Array<{ label: string; icon: LucideIcon; href: string }> = [
@@ -52,6 +54,9 @@ function StaffDashboard({ fullName }: { fullName: string }) {
 
 export default async function DashboardPage() {
   const user = await requireActiveUser();
+  const selectedEvent = await getSelectedEvent(user);
+  if (!selectedEvent) redirect("/select-event");
+
   if (user.role === "STAFF") return <StaffDashboard fullName={user.fullName} />;
 
   const summary = await getDashboardOverviewSummary();
