@@ -6,7 +6,6 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { requireActiveUser } from "@/features/auth/server/auth";
 import { AuthError } from "@/features/auth/types/auth";
 import { getSelectedEvent, listSelectableEvents } from "@/features/events/server/event-context";
-import { getUnreadNotificationCount } from "@/features/notifications/queries/list-notifications";
 
 export default async function DashboardLayout({
   children,
@@ -22,10 +21,9 @@ export default async function DashboardLayout({
     throw error;
   }
 
-  const [events, selectedEvent, unreadNotificationCount] = await Promise.all([
+  const [events, selectedEvent] = await Promise.all([
     listSelectableEvents(user.role),
-    getSelectedEvent(user),
-    getUnreadNotificationCount(),
+    getSelectedEvent(),
   ]);
   return (
     <div className="min-h-screen bg-muted/20">
@@ -35,7 +33,6 @@ export default async function DashboardLayout({
           user={{ fullName: user.fullName, email: user.email, role: user.role }}
           events={events.map(({id,name})=>({id,name}))}
           selectedEventId={selectedEvent?.id}
-          unreadNotificationCount={unreadNotificationCount}
         />
         {children}
       </div>
