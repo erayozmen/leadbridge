@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { MouseEvent } from "react";
 
 import {
   getDashboardNavigation,
@@ -36,12 +37,38 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   notifications: Bell,
 };
 
+type NavigationClick = Pick<
+  MouseEvent<HTMLAnchorElement>,
+  "altKey" | "button" | "ctrlKey" | "defaultPrevented" | "metaKey" | "shiftKey"
+>;
+
+export function handleNavigationClick(
+  event: NavigationClick,
+  onNavigate?: () => void,
+) {
+  if (
+    !onNavigate
+    || event.defaultPrevented
+    || event.button !== 0
+    || event.altKey
+    || event.ctrlKey
+    || event.metaKey
+    || event.shiftKey
+  ) {
+    return;
+  }
+
+  onNavigate();
+}
+
 export function DashboardNavigation({
   role,
   compact = false,
+  onNavigate,
 }: {
   role: DashboardRole;
   compact?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
 
@@ -65,6 +92,7 @@ export function DashboardNavigation({
           <Link
             key={item.label}
             href={item.href}
+            onClick={(event) => handleNavigationClick(event, onNavigate)}
             aria-current={isActive ? "page" : undefined}
             className={cn(
               "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
