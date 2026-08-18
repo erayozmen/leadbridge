@@ -84,7 +84,7 @@ model User {
 }
 
 model VrRecord {
-  id               String        @id @default(cuid())
+  id               String                    @id @default(cuid())
   firstName        String
   lastName         String
   school           String
@@ -92,14 +92,17 @@ model VrRecord {
   eventId          String
   phone            String?
   createdByUserId  String
-  assignedQrCodeId String?       @unique
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  createdByUser    User          @relation("VrRecordCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  assignedQrCode   QrCode?       @relation("QrCodeAssignedToVrRecord", fields: [assignedQrCodeId], references: [id], onDelete: SetNull)
+  assignedQrCodeId String?                   @unique
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  createdByUser    User                      @relation("VrRecordCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assignedQrCode   QrCode?                   @relation("QrCodeAssignedToVrRecord", fields: [assignedQrCodeId], references: [id], onDelete: SetNull)
   studentMatch     StudentMatch?
-  schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  event            Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  academyLink      AcademyStudentLink?
+  academySnapshot  AcademyPaymentSnapshot?
+  academyLedger    AcademyCommissionLedger[]
+  schoolRelation   School?                   @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  event            Event                     @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([firstName])
   @@index([lastName])
@@ -132,8 +135,8 @@ model QrCode {
 }
 
 model QrRegistration {
-  id               String        @id @default(cuid())
-  qrCodeId         String        @unique
+  id               String               @id @default(cuid())
+  qrCodeId         String               @unique
   eventId          String
   firstName        String
   lastName         String
@@ -141,21 +144,22 @@ model QrRegistration {
   phone            String
   school           String
   schoolId         String?
-  registeredAt     DateTime      @default(now())
-  attendedEvent    Boolean       @default(false)
+  registeredAt     DateTime             @default(now())
+  attendedEvent    Boolean              @default(false)
   attendedAt       DateTime?
   attendedByUserId String?
-  enrolledCourse   Boolean       @default(false)
+  enrolledCourse   Boolean              @default(false)
   enrolledAt       DateTime?
   enrolledByUserId String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  qrCode           QrCode        @relation(fields: [qrCodeId], references: [id], onDelete: Restrict)
-  attendedByUser   User?         @relation("QrRegistrationAttendedBy", fields: [attendedByUserId], references: [id], onDelete: SetNull)
-  enrolledByUser   User?         @relation("QrRegistrationEnrolledBy", fields: [enrolledByUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  qrCode           QrCode               @relation(fields: [qrCodeId], references: [id], onDelete: Restrict)
+  attendedByUser   User?                @relation("QrRegistrationAttendedBy", fields: [attendedByUserId], references: [id], onDelete: SetNull)
+  enrolledByUser   User?                @relation("QrRegistrationEnrolledBy", fields: [enrolledByUserId], references: [id], onDelete: SetNull)
   studentMatch     StudentMatch?
-  schoolRelation   School?       @relation(fields: [schoolId], references: [id], onDelete: Restrict)
-  event            Event         @relation(fields: [eventId], references: [id], onDelete: Restrict)
+  academyLinks     AcademyStudentLink[]
+  schoolRelation   School?              @relation(fields: [schoolId], references: [id], onDelete: Restrict)
+  event            Event                @relation(fields: [eventId], references: [id], onDelete: Restrict)
 
   @@index([firstName])
   @@index([lastName])
@@ -180,6 +184,88 @@ model StudentMatch {
 
   @@index([matchedByUserId])
   @@index([matchedAt])
+}
+
+enum AcademyMatchStatus {
+  MATCHED
+  NOT_FOUND
+  AMBIGUOUS
+}
+
+enum AcademySyncRunStatus {
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+model AcademyStudentLink {
+  id               String             @id @default(cuid())
+  vrRecordId       String             @unique
+  qrRegistrationId String
+  academyStudentId String?
+  status           AcademyMatchStatus
+  matchedAt        DateTime?
+  lastCheckedAt    DateTime
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  vrRecord         VrRecord           @relation(fields: [vrRecordId], references: [id], onDelete: Restrict)
+  qrRegistration   QrRegistration     @relation(fields: [qrRegistrationId], references: [id], onDelete: Restrict)
+
+  @@index([status, lastCheckedAt])
+  @@index([academyStudentId])
+}
+
+model AcademyPaymentSnapshot {
+  id                     String   @id @default(cuid())
+  vrRecordId             String   @unique
+  academyStudentId       String
+  lastObservedPaidAmount Decimal  @db.Decimal(14, 2)
+  currency               String   @db.Char(3)
+  version                Int      @default(0)
+  lastSyncedAt           DateTime
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  vrRecord               VrRecord @relation(fields: [vrRecordId], references: [id], onDelete: Restrict)
+
+  @@index([academyStudentId])
+}
+
+model AcademyCommissionLedger {
+  id                    String         @id @default(cuid())
+  vrRecordId            String
+  academyStudentId      String
+  academyPaymentDelta   Decimal        @db.Decimal(14, 2)
+  commissionRate        Decimal        @db.Decimal(7, 4)
+  commissionAmount      Decimal        @db.Decimal(14, 2)
+  academyTotalPaidAfter Decimal        @db.Decimal(14, 2)
+  currency              String         @db.Char(3)
+  snapshotVersion       Int
+  syncRunId             String
+  createdAt             DateTime       @default(now())
+  vrRecord              VrRecord       @relation(fields: [vrRecordId], references: [id], onDelete: Restrict)
+  syncRun               AcademySyncRun @relation(fields: [syncRunId], references: [id], onDelete: Restrict)
+
+  @@unique([vrRecordId, snapshotVersion])
+  @@index([syncRunId])
+  @@index([academyStudentId, createdAt])
+}
+
+model AcademySyncRun {
+  id                        String                    @id @default(cuid())
+  startedAt                 DateTime                  @default(now())
+  finishedAt                DateTime?
+  status                    AcademySyncRunStatus      @default(RUNNING)
+  candidateCount            Int                       @default(0)
+  matchedCount              Int                       @default(0)
+  notFoundCount             Int                       @default(0)
+  ambiguousCount            Int                       @default(0)
+  commissionAdjustmentCount Int                       @default(0)
+  errorCount                Int                       @default(0)
+  ledgers                   AcademyCommissionLedger[]
+
+  @@index([startedAt])
+  @@index([status, startedAt])
 }
 
 model AuditLog {
