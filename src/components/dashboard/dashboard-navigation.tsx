@@ -2,7 +2,6 @@
 
 import {
   BarChart3,
-  BookOpenCheck,
   ClipboardCheck,
   Gauge,
   QrCode,
@@ -31,7 +30,6 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   vr: Video,
   qr: QrCode,
   attendance: ClipboardCheck,
-  course: BookOpenCheck,
   reports: BarChart3,
   users: Users,
   events: CalendarDays,
@@ -74,7 +72,7 @@ export function DashboardNavigation({
 }) {
   const pathname = usePathname();
   const groupLabels = role === "ADMIN"
-    ? new Map([[0, "Etkinlik"], [1, "Operasyon"], [9, "Yönetim ve raporlama"]])
+    ? new Map([[0, "Etkinlik"], [1, "Operasyon"], [8, "Yönetim ve raporlama"]])
     : new Map([[0, "Operasyon"]]);
 
   return (

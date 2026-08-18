@@ -1,5 +1,5 @@
 import "server-only";
-import { AcademyMatchStatus, AcademySyncRunStatus, Prisma } from "@prisma/client";
+import { AcademyMatchStatus, AcademySyncRunSource, AcademySyncRunStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ACADEMY_COMMISSION_RATE, calculateCommissionAdjustment } from "./domain";
 
@@ -15,11 +15,11 @@ async function callAcademy(students: Array<{ leadbridgesStudentId: string; first
   return body.results;
 }
 
-export async function runAcademyCommissionSync() {
+export async function runAcademyCommissionSync(source: AcademySyncRunSource = AcademySyncRunSource.CRON) {
   const claimed = await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(736241)`;
     const active = await tx.academySyncRun.findFirst({ where: { status: AcademySyncRunStatus.RUNNING, startedAt: { gt: new Date(Date.now() - 30 * 60_000) } } });
-    return active ? { run: active, created: false } : { run: await tx.academySyncRun.create({ data: {} }), created: true };
+    return active ? { run: active, created: false } : { run: await tx.academySyncRun.create({ data: { source } }), created: true };
   });
   const run = claimed.run;
   if (!claimed.created) return { runId: run.id, skipped: true };

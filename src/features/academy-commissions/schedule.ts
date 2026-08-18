@@ -1,0 +1,3 @@
+export const ACADEMY_SYNC_TIME_ZONE = "Europe/Istanbul";
+const scheduledHours = new Set([0, 6, 12, 18]);
+export function getNextAcademySyncTime(now = new Date()) { const formatter = new Intl.DateTimeFormat("en-GB", { timeZone: ACADEMY_SYNC_TIME_ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }); const start = new Date(Math.floor(now.getTime() / 60_000) * 60_000 + 60_000); for (let minute = 0; minute <= 26 * 60; minute++) { const candidate = new Date(start.getTime() + minute * 60_000); const parts = Object.fromEntries(formatter.formatToParts(candidate).map((part) => [part.type, part.value])); if (parts.minute === "00" && scheduledHours.has(Number(parts.hour))) return candidate; } throw new Error("Next Academy synchronization time could not be calculated"); }

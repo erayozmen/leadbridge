@@ -199,6 +199,11 @@ enum AcademySyncRunStatus {
   FAILED
 }
 
+enum AcademySyncRunSource {
+  CRON
+  MANUAL
+}
+
 model AcademyStudentLink {
   id               String             @id @default(cuid())
   vrRecordId       String             @unique
@@ -256,6 +261,7 @@ model AcademySyncRun {
   startedAt                 DateTime                  @default(now())
   finishedAt                DateTime?
   status                    AcademySyncRunStatus      @default(RUNNING)
+  source                    AcademySyncRunSource      @default(CRON)
   candidateCount            Int                       @default(0)
   matchedCount              Int                       @default(0)
   notFoundCount             Int                       @default(0)

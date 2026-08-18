@@ -109,7 +109,7 @@ export function AdminOverview({
             {[
               ["Atandı, form yok", summary.assignedWithoutRegistration, "/dashboard/qr-codes?status=ASSIGNED"],
               ["Form var, katılım yok", summary.registeredNotAttended, "/dashboard/attendance?attendance=not-attended"],
-              ["Katıldı, kurs yok", summary.attendedNotEnrolled, "/dashboard/course-enrollments?attendance=attended&enrollment=not-enrolled"],
+              ["Katıldı, kurs yok", summary.attendedNotEnrolled, "/dashboard/reports"],
               ["Eşleşmemiş QR kaydı", summary.unmatchedRegistrations, "/dashboard/qr-registrations?matchStatus=unmatched"],
               ["Eşleşmemiş VR kaydı", summary.unmatchedVrRecords, "/dashboard/vr-records?matchStatus=unmatched"],
             ].map(([label, value, href]) => <Link key={String(label)} href={String(href)} className="rounded-md border bg-background p-4 transition-colors hover:border-primary/25 hover:bg-accent/40 focus-visible:ring-2 focus-visible:ring-ring"><span className="text-sm text-muted-foreground">{label}</span><strong className="mt-2 block text-2xl tabular-nums">{value}</strong></Link>)}
