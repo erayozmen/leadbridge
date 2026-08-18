@@ -8,11 +8,11 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
       data-slot="table-container"
-      className="relative w-full overflow-x-auto overscroll-x-contain bg-card/80 [background-image:linear-gradient(to_right,var(--card),transparent_1rem),linear-gradient(to_left,var(--card),transparent_1rem)] [background-position:left_center,right_center] [background-repeat:no-repeat] [background-size:2rem_100%] [scrollbar-width:thin]"
+      className="relative isolate max-w-full overflow-x-auto overscroll-x-contain bg-card/80 [background-image:linear-gradient(to_right,var(--card),transparent_1rem),linear-gradient(to_left,var(--card),transparent_1rem)] [background-position:left_center,right_center] [background-repeat:no-repeat] [background-size:2rem_100%] [scrollbar-width:thin]"
     >
       <table
         data-slot="table"
-        className={cn("w-full min-w-max caption-bottom text-sm", className)}
+        className={cn("w-full min-w-[40rem] caption-bottom text-sm", className)}
         {...props}
       />
     </div>
@@ -70,7 +70,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-11 px-4 text-left align-middle text-xs font-semibold whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "h-11 px-4 text-left align-middle text-[11px] font-semibold tracking-wide whitespace-nowrap text-muted-foreground uppercase [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}
@@ -83,7 +83,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-4 py-3 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
+        "px-4 py-3 align-middle whitespace-nowrap first:font-medium [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]",
         className
       )}
       {...props}

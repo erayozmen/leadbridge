@@ -132,7 +132,7 @@
   }
   [data-dashboard-content] select,
   [data-dashboard-content] textarea {
-    @apply rounded-md border border-input bg-background text-foreground shadow-xs outline-none transition-[border-color,box-shadow];
+    @apply min-h-10 w-full min-w-0 max-w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none transition-[border-color,box-shadow];
   }
   [data-dashboard-content] select:focus-visible,
   [data-dashboard-content] textarea:focus-visible {

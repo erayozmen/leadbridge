@@ -84,7 +84,7 @@ export function AdminOverview({
         </div>
       </section>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Operasyon metrikleri">
+      <section className="mt-8 grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-5" aria-label="Operasyon metrikleri">
         {metrics.map(({ key, cardLabel, value, icon: Icon }) => (
           <Card key={key} className="group gap-4 overflow-hidden py-5 hover:-translate-y-1 hover:border-primary/25 hover:shadow-[0_18px_38px_rgb(15_23_42/0.09)]">
             <CardHeader className="flex grid-cols-[1fr_auto] flex-row items-center justify-between gap-3 px-5">
@@ -103,7 +103,7 @@ export function AdminOverview({
       </section>
 
       <section className="mt-6" aria-labelledby="attention-title">
-        <Card className="rounded-lg shadow-none">
+        <Card>
           <CardHeader><h2 id="attention-title" className="font-semibold">Dikkat gerektiren kayıtlar</h2><CardDescription>Operasyon akışında tamamlanmayı bekleyen kayıtlar</CardDescription></CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {[
@@ -118,7 +118,7 @@ export function AdminOverview({
       </section>
 
       <section className="mt-6" aria-labelledby="conversion-funnel-title">
-        <Card className="rounded-lg shadow-none">
+        <Card>
           <CardHeader>
             <h2 id="conversion-funnel-title" className="font-semibold">Dönüşüm hunisi</h2>
             <CardDescription>Kayıt akışının beş temel adımı</CardDescription>

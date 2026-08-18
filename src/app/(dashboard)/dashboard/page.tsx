@@ -9,6 +9,7 @@ import { EventFilter } from "@/features/events/components/event-filter";
 import { listEventFilterOptions, resolveEventFilter } from "@/features/events/server/event-filter";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { DashboardPage as DashboardPageShell } from "@/components/dashboard/dashboard-page";
 
 export const dashboardQuickActions: Array<{ label: string; icon: LucideIcon; href: string }> = [
   { label: "Yeni VR Kaydı", icon: Video, href: "/dashboard/vr-records/new" },
@@ -38,7 +39,7 @@ function QuickActions() {
 
 function StaffDashboard({ fullName }: { fullName: string }) {
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <DashboardPageShell>
       <PageHeader
         title={`Hoş geldiniz, ${fullName}`}
         description="Günlük öğrenci ve etkinlik işlemlerine buradan erişebilirsiniz."
@@ -48,7 +49,7 @@ function StaffDashboard({ fullName }: { fullName: string }) {
         <h2 id="quick-actions-title" className="mb-4 text-sm font-semibold">Hızlı işlemler</h2>
         <QuickActions />
       </section>
-    </main>
+    </DashboardPageShell>
   );
 }
 
@@ -67,13 +68,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   });
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <DashboardPageShell>
       <div className="mb-6 rounded-lg border bg-card p-4"><EventFilter events={events} selectedId={event.id} /></div>
       <AdminOverview summary={summary} eventName={event.name} />
       <section className="mt-6" aria-labelledby="quick-actions-title">
         <h2 id="quick-actions-title" className="mb-4 text-sm font-semibold">Hızlı işlemler</h2>
         <QuickActions />
       </section>
-    </main>
+    </DashboardPageShell>
   );
 }

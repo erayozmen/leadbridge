@@ -1,0 +1,5 @@
+import type { ComponentProps, ReactNode } from "react";
+import { cn } from "@/lib/utils";
+export function DashboardPage({ className, width = "wide", ...props }: ComponentProps<"main"> & { width?: "wide" | "medium" | "narrow" }) { return <main className={cn("mx-auto min-w-0 w-full overflow-x-clip px-4 py-6 sm:px-6 sm:py-8 lg:px-8", width === "wide" ? "max-w-7xl" : width === "medium" ? "max-w-5xl" : "max-w-3xl", className)} {...props} />; }
+export function DashboardSection({ className, ...props }: ComponentProps<"section">) { return <section className={cn("mt-6 sm:mt-8", className)} {...props} />; }
+export function SectionHeading({ title, description, actions }: { title: ReactNode; description?: ReactNode; actions?: ReactNode }) { return <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><h2 className="text-base font-semibold tracking-tight">{title}</h2>{description ? <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p> : null}</div>{actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}</div>; }

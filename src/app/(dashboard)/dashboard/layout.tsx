@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar role={user.role} />
-      <div data-dashboard-content className="min-h-screen lg:pl-68">
+      <div data-dashboard-content className="min-h-screen min-w-0 overflow-x-clip lg:pl-68">
         <DashboardHeader
           user={{ fullName: user.fullName, email: user.email, role: user.role }}
         />

@@ -25,10 +25,10 @@ function pageHref(page: number, filters: QrCodeFilters) {
 export function QrCodeList({ records, total, page, pageCount, hasFilters, filters }: { records: QrCodeListItem[]; total: number; page: number; pageCount: number; hasFilters: boolean; filters: QrCodeFilters }) {
   return (
     <div>
-      <form method="get" className="grid gap-4 border-b p-5 lg:grid-cols-3 xl:grid-cols-6 xl:items-end">
+      <form method="get" className="grid gap-4 border-b p-4 sm:grid-cols-2 sm:p-5 2xl:grid-cols-3 2xl:items-end">
         <div className="grid gap-2"><Label htmlFor="serialNumber">Seri Numarası</Label><Input id="serialNumber" name="serialNumber" defaultValue={filters.serialNumber} /></div>
-        <div className="grid gap-2"><Label htmlFor="status">Durum</Label><select id="status" name="status" defaultValue={filters.status ?? ""} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="">Tümü</option>{Object.values(QrCodeStatus).map((status) => <option key={status} value={status}>{labels[status]}</option>)}</select></div>
-        <div className="grid gap-2"><Label htmlFor="archive">Kayıt Görünümü</Label><select id="archive" name="archive" defaultValue={filters.archive ?? "active"} className="h-9 rounded-md border bg-background px-3 text-sm"><option value="active">Aktif Kayıtlar</option><option value="archived">Arşivlenenler</option><option value="all">Tümü</option></select></div>
+        <div className="grid gap-2"><Label htmlFor="status">Durum</Label><select id="status" name="status" defaultValue={filters.status ?? ""}><option value="">Tümü</option>{Object.values(QrCodeStatus).map((status) => <option key={status} value={status}>{labels[status]}</option>)}</select></div>
+        <div className="grid gap-2"><Label htmlFor="archive">Kayıt Görünümü</Label><select id="archive" name="archive" defaultValue={filters.archive ?? "active"}><option value="active">Aktif Kayıtlar</option><option value="archived">Arşivlenenler</option><option value="all">Tümü</option></select></div>
         <div className="grid gap-2"><Label htmlFor="createdFrom">Başlangıç</Label><Input id="createdFrom" name="createdFrom" type="date" defaultValue={filters.createdFrom} /></div>
         <div className="grid gap-2"><Label htmlFor="createdTo">Bitiş</Label><Input id="createdTo" name="createdTo" type="date" defaultValue={filters.createdTo} /></div>
         <SortSelect value={filters.sort} /><PageSizeSelect value={filters.pageSize} />

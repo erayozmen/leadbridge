@@ -42,15 +42,15 @@ export function buildReportMetricGroups(summary: ReportSummary): MetricGroup[] {
 
 export function ReportSummaryCards({ summary }: { summary: ReportSummary }) {
   return (
-    <div className="mt-8 space-y-8">
+    <div className="mt-8 space-y-7 sm:space-y-8">
       {buildReportMetricGroups(summary).map((group) => (
         <section key={group.title} aria-labelledby={`report-${group.title}`}>
           <h2 id={`report-${group.title}`} className="mb-3 text-sm font-semibold">
             {group.title}
           </h2>
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
             {group.metrics.map((metric) => (
-              <Card key={metric.label} className="gap-3 rounded-lg py-5 shadow-none">
+              <Card key={metric.label} className="gap-3 py-5">
                 <CardHeader className="px-5">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {metric.label}
