@@ -13,7 +13,7 @@ export async function guardMutation(scope: string, options: { limit: number; win
     const identity = forwarded && forwarded.length <= 64 ? forwarded : "anonymous";
     return consumeRateLimit(`${scope}:${identity}`, options);
   } catch {
-    // Unit tests and non-request invocations still rely on the service's authorization and validation.
-    return true;
+    // A broken request context must not silently disable production protection.
+    return process.env.NODE_ENV === "test";
   }
 }

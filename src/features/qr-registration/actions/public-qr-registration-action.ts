@@ -2,13 +2,17 @@
 
 import { createQrRegistration } from "@/features/qr-registration/services/create-qr-registration";
 import type { QrRegistrationFieldErrors } from "@/features/qr-registration/types/qr-registration-result";
-import { guardMutation } from "@/lib/security/request-guard";
+import { guardPublicQrMutation } from "@/lib/security/public-qr-guard";
+import { TURNSTILE_RESPONSE_FIELD } from "@/lib/security/public-qr-policy";
 
 export type PublicQrRegistrationState = {
   status: "idle" | "success" | "error";
   message: string | null;
   fieldErrors?: Omit<QrRegistrationFieldErrors, "token">;
+  values?: PublicQrRegistrationValues;
 };
+
+export type PublicQrRegistrationValues = { firstName: string; lastName: string; guardianName: string; phone: string; schoolId: string };
 
 function textField(formData: FormData, name: string): string {
   const value = formData.get(name);
@@ -19,14 +23,12 @@ export async function publicQrRegistrationAction(
   _state: PublicQrRegistrationState,
   formData: FormData,
 ): Promise<PublicQrRegistrationState> {
-  if (!await guardMutation("public-registration", { limit: 8, windowMs: 60_000 })) return { status: "error", message: "Çok fazla deneme yapıldı. Lütfen kısa süre sonra tekrar deneyin." };
+  const values: PublicQrRegistrationValues = { firstName: textField(formData, "firstName"), lastName: textField(formData, "lastName"), guardianName: textField(formData, "guardianName"), phone: textField(formData, "phone"), schoolId: textField(formData, "schoolId") };
+  const guard = await guardPublicQrMutation(textField(formData, TURNSTILE_RESPONSE_FIELD));
+  if (!guard.allowed) return { status: "error", message: guard.reason === "RATE_LIMIT" ? "Çok fazla deneme yapıldı. Lütfen kısa süre sonra tekrar deneyin." : "Güvenlik doğrulaması tamamlanamadı. Lütfen tekrar deneyin.", values };
   const result = await createQrRegistration({
     token: textField(formData, "token"),
-    firstName: textField(formData, "firstName"),
-    lastName: textField(formData, "lastName"),
-    guardianName: textField(formData, "guardianName"),
-    phone: textField(formData, "phone"),
-    schoolId: textField(formData, "schoolId"),
+    ...values,
   });
 
   if (result.ok) {
@@ -49,5 +51,6 @@ export async function publicQrRegistrationAction(
     status: "error",
     message: messages[result.code],
     fieldErrors: result.fieldErrors,
+    values,
   };
 }

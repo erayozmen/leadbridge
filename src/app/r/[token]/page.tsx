@@ -23,7 +23,7 @@ export default async function PublicQrRegistrationPage({ params }: { params: Pro
         <div className="mb-6 text-center"><p className="text-xl font-semibold">LeadBridge</p><p className="mt-1 text-sm text-muted-foreground">Etkinlik ve öğrenci kayıt sistemi</p></div>
         <Card className="rounded-lg shadow-sm">
           <CardHeader className="text-center"><CardTitle className="text-2xl">Etkinlik Kayıt Formu</CardTitle><p className="text-sm leading-6 text-muted-foreground">Kaydınızı tamamlamak için aşağıdaki bilgileri eksiksiz doldurun.</p></CardHeader>
-          <CardContent>{status === "AVAILABLE" ? schools.length ? <QrRegistrationForm token={token} schools={schools} /> : <p className="py-8 text-center text-sm text-muted-foreground">Şu anda kayıt için kullanılabilir okul bulunmuyor.</p> : <QrRegistrationStatus status={status} />}</CardContent>
+          <CardContent>{status === "AVAILABLE" ? schools.length ? <QrRegistrationForm token={token} schools={schools} turnstileSiteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY} turnstileRequired={process.env.NODE_ENV === "production"} /> : <p className="py-8 text-center text-sm text-muted-foreground">Şu anda kayıt için kullanılabilir okul bulunmuyor.</p> : <QrRegistrationStatus status={status} />}</CardContent>
         </Card>
         <p className="mt-5 text-center text-xs leading-5 text-muted-foreground">Bilgileriniz yalnızca etkinlik ve kayıt süreçleri için kullanılır.</p>
       </div>

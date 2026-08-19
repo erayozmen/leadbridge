@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Bell,
   CircleDollarSign,
+  HeartPulse,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -35,6 +36,7 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   events: CalendarDays,
   notifications: Bell,
   commissions: CircleDollarSign,
+  health: HeartPulse,
 };
 
 type NavigationClick = Pick<

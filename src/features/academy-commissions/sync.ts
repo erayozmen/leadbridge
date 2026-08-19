@@ -1,21 +1,28 @@
 import "server-only";
+import * as Sentry from "@sentry/nextjs";
 import { AcademyMatchStatus, AcademySyncRunSource, AcademySyncRunStatus, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { captureTechnicalException } from "@/lib/monitoring/capture";
+import { validateServerIntegrationBaseUrl } from "@/lib/security/external-url";
 import { ACADEMY_COMMISSION_RATE, calculateCommissionAdjustment } from "./domain";
+import { buildAcademyLookupBatches } from "./batch";
 
 type RemoteResult = { leadbridgesStudentId: string; status: "MATCHED" | "NOT_FOUND" | "AMBIGUOUS"; academyStudentId?: string; totalPaid?: string; currency?: string };
 
 async function callAcademy(students: Array<{ leadbridgesStudentId: string; firstName?: string; lastName?: string; academyStudentId?: string }>) {
   const url = process.env.ACADEMY_API_BASE_URL, secret = process.env.ACADEMY_INTEGRATION_SECRET;
   if (!url || !secret) throw new Error("Academy integration is not configured");
-  const response = await fetch(`${url.replace(/\/$/, "")}/api/integrations/leadbridges/students/lookup`, { method: "POST", headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" }, body: JSON.stringify({ students }), signal: AbortSignal.timeout(10_000), cache: "no-store" });
+  const endpoint = new URL("api/integrations/leadbridges/students/lookup", `${validateServerIntegrationBaseUrl(url).toString().replace(/\/$/, "")}/`);
+  const response = await Sentry.startSpan({ name: "Academy student lookup", op: "http.client", attributes: { "academy.candidate_count": students.length } }, () => fetch(endpoint, { method: "POST", headers: { authorization: `Bearer ${secret}`, "content-type": "application/json" }, body: JSON.stringify({ students }), signal: AbortSignal.timeout(10_000), cache: "no-store", redirect: "error" }));
   if (!response.ok) throw new Error(`Academy lookup failed (${response.status})`);
+  const contentLength = Number(response.headers.get("content-length") ?? 0);
+  if (contentLength > 1_000_000) throw new Error("Academy lookup response is too large");
   const body = await response.json() as { results?: RemoteResult[] };
   if (!Array.isArray(body.results)) throw new Error("Academy lookup response is invalid");
   return body.results;
 }
 
-export async function runAcademyCommissionSync(source: AcademySyncRunSource = AcademySyncRunSource.CRON) {
+async function runAcademyCommissionSyncCore(source: AcademySyncRunSource) {
   const claimed = await prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(736241)`;
     const active = await tx.academySyncRun.findFirst({ where: { status: AcademySyncRunStatus.RUNNING, startedAt: { gt: new Date(Date.now() - 30 * 60_000) } } });
@@ -28,14 +35,18 @@ export async function runAcademyCommissionSync(source: AcademySyncRunSource = Ac
   if (!candidates.length) { await prisma.academySyncRun.update({ where: { id: run.id }, data: { status: AcademySyncRunStatus.COMPLETED, finishedAt: new Date() } }); return { runId: run.id, skipped: false, matched: 0, notFound: 0, ambiguous: 0, adjustments: 0, errors: 0 }; }
   let results: RemoteResult[];
   try {
-    results = await callAcademy(candidates.map(({ vrRecord }) => vrRecord.academyLink?.academyStudentId ? { leadbridgesStudentId: vrRecord.id, academyStudentId: vrRecord.academyLink.academyStudentId } : { leadbridgesStudentId: vrRecord.id, firstName: vrRecord.firstName, lastName: vrRecord.lastName }));
+    const requests = candidates.map(({ vrRecord }) => vrRecord.academyLink?.academyStudentId ? { leadbridgesStudentId: vrRecord.id, academyStudentId: vrRecord.academyLink.academyStudentId } : { leadbridgesStudentId: vrRecord.id, firstName: vrRecord.firstName, lastName: vrRecord.lastName });
+    results = [];
+    for (const batch of buildAcademyLookupBatches(requests)) results.push(...await callAcademy(batch));
   } catch (error) {
     await prisma.academySyncRun.update({ where: { id: run.id }, data: { status: AcademySyncRunStatus.FAILED, finishedAt: new Date(), errorCount: 1 } });
+    captureTechnicalException(error, { feature: "academy-commission-sync", operation: "academy-request", source: source as "CRON" | "MANUAL", syncRunId: run.id, runStatus: "FAILED", candidateCount: candidates.length, errorCount: 1 });
     throw error;
   }
   const counts = { matched: 0, notFound: 0, ambiguous: 0, adjustments: 0, errors: 0 };
+  const candidatesByVrRecordId = new Map(candidates.map((candidate) => [candidate.vrRecord.id, candidate]));
   for (const result of results) {
-    const candidate = candidates.find((item) => item.vrRecord.id === result.leadbridgesStudentId); if (!candidate) { counts.errors++; continue; }
+    const candidate = candidatesByVrRecordId.get(result.leadbridgesStudentId); if (!candidate) { counts.errors++; continue; }
     const status = AcademyMatchStatus[result.status]; if (status === AcademyMatchStatus.MATCHED) counts.matched++; else if (status === AcademyMatchStatus.NOT_FOUND) counts.notFound++; else counts.ambiguous++;
     try {
       await prisma.$transaction(async (tx) => {
@@ -49,8 +60,15 @@ export async function runAcademyCommissionSync(source: AcademySyncRunSource = Ac
         else await tx.academyPaymentSnapshot.create({ data: { vrRecordId: candidate.vrRecord.id, academyStudentId: result.academyStudentId, lastObservedPaidAmount: current, currency: result.currency, lastSyncedAt: now, version: nextVersion } });
         if (!delta.isZero()) { await tx.academyCommissionLedger.create({ data: { vrRecordId: candidate.vrRecord.id, academyStudentId: result.academyStudentId, academyPaymentDelta: delta, commissionRate: ACADEMY_COMMISSION_RATE, commissionAmount: commission, academyTotalPaidAfter: current, currency: result.currency, snapshotVersion: nextVersion, syncRunId: run.id } }); counts.adjustments++; }
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-    } catch { counts.errors++; }
+    } catch (error) {
+      counts.errors++;
+      captureTechnicalException(error, { feature: "academy-commission-sync", operation: "process-candidate", source: source as "CRON" | "MANUAL", syncRunId: run.id, runStatus: "PARTIAL", candidateCount: candidates.length, matchedCount: counts.matched, errorCount: counts.errors });
+    }
   }
   await prisma.academySyncRun.update({ where: { id: run.id }, data: { finishedAt: new Date(), status: counts.errors ? AcademySyncRunStatus.PARTIAL : AcademySyncRunStatus.COMPLETED, matchedCount: counts.matched, notFoundCount: counts.notFound, ambiguousCount: counts.ambiguous, commissionAdjustmentCount: counts.adjustments, errorCount: counts.errors } });
   return { runId: run.id, skipped: false, ...counts };
+}
+
+export async function runAcademyCommissionSync(source: AcademySyncRunSource = AcademySyncRunSource.CRON) {
+  return Sentry.startSpan({ name: "Academy Commission Sync", op: "academy.sync", attributes: { "sync.source": source } }, () => runAcademyCommissionSyncCore(source));
 }
