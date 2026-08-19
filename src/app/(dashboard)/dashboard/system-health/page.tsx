@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 
 type Tab = "overview" | "errors" | "integrations" | "backup" | "security" | "performance";
 const tabs: Array<{ value: Tab; label: string }> = [{ value: "overview", label: "Genel Bakış" }, { value: "errors", label: "Hatalar" }, { value: "integrations", label: "Entegrasyonlar" }, { value: "backup", label: "Yedekleme" }, { value: "security", label: "Güvenlik" }, { value: "performance", label: "Performans" }];
-const formatDate = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", dateStyle: "medium", timeStyle: "short" });
+const dateFormatter = new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul", dateStyle: "medium", timeStyle: "short" });
+const formatDate = { format(value: unknown) { const date = value instanceof Date ? value : typeof value === "string" || typeof value === "number" ? new Date(value) : null; return date && Number.isFinite(date.getTime()) ? dateFormatter.format(date) : "—"; } };
 
 function RunSummary({ run }: { run: NonNullable<SystemHealthSnapshot["academyIntegration"]["latestRun"]> }) {
   return <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3 lg:grid-cols-6">{[["Aday", run.candidateCount], ["Eşleşen", run.matchedCount], ["Bulunamayan", run.notFoundCount], ["Belirsiz", run.ambiguousCount], ["Adjustments", run.commissionAdjustmentCount], ["Hatalar", run.errorCount]].map(([label, value]) => <div key={String(label)} className="bg-card p-4"><div className="text-xs text-muted-foreground">{label}</div><div className="mt-1 text-xl font-semibold tabular-nums">{value}</div></div>)}</div>;
