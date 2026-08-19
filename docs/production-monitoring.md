@@ -1,5 +1,14 @@
 # Production monitoring
 
+## Token separation
+
+- `SENTRY_AUTH_TOKEN` is only for CI/Vercel release and source-map uploads. Runtime API queries never use it.
+- `SENTRY_READ_TOKEN` is only for the server-side System Health live provider. It never enters the client bundle, view model, logs, or telemetry context.
+
+Grant the runtime token only `project:read` (24-hour project error stats) and `event:read` (read-only issue list). Do not grant write, admin, resolve, or delete permissions. Separate Production and Preview tokens and rotate them under the normal secret policy.
+
+The live provider uses a five-second timeout and a 45-second server cache. Unauthorized, rate-limited, or unavailable provider responses leave health `UNKNOWN` and do not crash the page.
+
 LeadBridges uses Sentry for technical runtime failures and performance tracing. `AcademySyncRun` remains the operational/business history for Academy synchronization; Sentry does not replace it.
 
 ## Vercel environment variables

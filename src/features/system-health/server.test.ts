@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ query: vi.fn(), findFirst: vi.fn(), findMany: vi.fn() }));
+const mocks = vi.hoisted(() => ({ query: vi.fn(), findFirst: vi.fn(), findMany: vi.fn(), backupFindMany: vi.fn(), sentry: vi.fn() }));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/prisma", () => ({ prisma: { $queryRaw: mocks.query, academySyncRun: { findFirst: mocks.findFirst, findMany: mocks.findMany } } }));
+vi.mock("@/lib/prisma", () => ({ prisma: { $queryRaw: mocks.query, academySyncRun: { findFirst: mocks.findFirst, findMany: mocks.findMany }, backupVerification: { findMany: mocks.backupFindMany } } }));
+vi.mock("./sentry-provider", () => ({ getCachedSentryLiveHealth: mocks.sentry }));
 import { getSystemHealthSnapshot } from "./server";
 
 const run = { id: "run-1", source: "CRON", status: "COMPLETED", startedAt: new Date("2026-08-18T09:00:00.000Z"), finishedAt: new Date("2026-08-18T09:01:00.000Z"), candidateCount: 4, matchedCount: 2, notFoundCount: 1, ambiguousCount: 1, commissionAdjustmentCount: 1, errorCount: 0 };
-beforeEach(() => { vi.clearAllMocks(); mocks.query.mockResolvedValue([{ "?column?": 1 }]); mocks.findFirst.mockResolvedValue(run); mocks.findMany.mockResolvedValue([]); vi.stubEnv("ACADEMY_API_BASE_URL", "https://academy.example"); vi.stubEnv("ACADEMY_INTEGRATION_SECRET", "secret"); vi.stubEnv("SENTRY_DSN", "https://public@example.ingest.sentry.io/1"); vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "https://public@example.ingest.sentry.io/1"); vi.stubEnv("SENTRY_AUTH_TOKEN", "secret"); vi.stubEnv("SENTRY_ORG", "org"); vi.stubEnv("SENTRY_PROJECT", "project"); vi.stubEnv("VERCEL_ENV", "production"); vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "1234567890abcdef"); });
+beforeEach(() => { vi.clearAllMocks(); mocks.query.mockResolvedValue([{ "?column?": 1 }]); mocks.findFirst.mockResolvedValue(run); mocks.findMany.mockResolvedValue([]); mocks.backupFindMany.mockResolvedValue([]); mocks.sentry.mockResolvedValue({ status: "HEALTHY", providerState: "AVAILABLE", errorEvents24h: 0, criticalEvents24h: 0, unresolvedIssues: 0, lastErrorAt: null, issues: [] }); vi.stubEnv("ACADEMY_API_BASE_URL", "https://academy.example"); vi.stubEnv("ACADEMY_INTEGRATION_SECRET", "secret"); vi.stubEnv("SENTRY_DSN", "https://public@example.ingest.sentry.io/1"); vi.stubEnv("NEXT_PUBLIC_SENTRY_DSN", "https://public@example.ingest.sentry.io/1"); vi.stubEnv("SENTRY_AUTH_TOKEN", "secret"); vi.stubEnv("SENTRY_ORG", "org"); vi.stubEnv("SENTRY_PROJECT", "project"); vi.stubEnv("VERCEL_ENV", "production"); vi.stubEnv("VERCEL_GIT_COMMIT_SHA", "1234567890abcdef"); });
 afterEach(() => vi.unstubAllEnvs());
 
 describe("system health snapshot", () => {
@@ -14,7 +15,8 @@ describe("system health snapshot", () => {
     const snapshot = await getSystemHealthSnapshot(new Date("2026-08-18T10:00:00.000Z"));
     expect(snapshot.academyIntegration.latestRun?.id).toBe("run-1");
     expect(snapshot.sentry).toMatchObject({ configured: true, sourceMapsConfigured: true, defaultPiiEnabled: false });
-    expect(snapshot.backup).toMatchObject({ status: "DEGRADED", managedBackupStatus: "UNKNOWN", pitrConfigured: "UNKNOWN", logicalToolingAvailable: true, recoveryDocumentationAvailable: true });
+    expect(snapshot.release).toEqual({ environment: "production", shortSha: "12345678" });
+    expect(snapshot.backup).toMatchObject({ status: "UNKNOWN", managed: null, logical: null, restore: null, logicalToolingAvailable: true, recoveryDocumentationAvailable: true });
     expect(snapshot.overallStatus).toBe("DEGRADED");
     const payload = JSON.stringify(snapshot);
     expect(payload).not.toContain("ACADEMY_INTEGRATION_SECRET");

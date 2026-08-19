@@ -5,7 +5,6 @@ export const ACADEMY_CRON_HEALTH = {
   healthyWithinHours: 7,
   warningWithinHours: 13,
 } as const;
-export const LOGICAL_BACKUP_MAX_AGE_HOURS = 24;
 
 const priority: Record<HealthStatus, number> = { HEALTHY: 0, UNKNOWN: 1, WARNING: 2, DEGRADED: 3, FAILED: 4 };
 
@@ -28,15 +27,4 @@ export function deriveAcademyIntegrationHealth(configured: boolean, latestStatus
   if (latestStatus === "FAILED") return "FAILED";
   if (latestStatus === "PARTIAL" || latestStatus === "RUNNING") return "WARNING";
   return latestStatus === "COMPLETED" ? "HEALTHY" : "UNKNOWN";
-}
-
-export function deriveBackupHealth(input: { policyConfigured: boolean; toolingAvailable: boolean; managedBackupVerified: boolean; pitrVerified: boolean; lastVerification?: { status: "SUCCESS" | "FAILED"; verifiedAt: Date } | null; now: Date }): HealthStatus {
-  if (input.lastVerification?.status === "FAILED") return "FAILED";
-  if (input.managedBackupVerified || input.pitrVerified) return "HEALTHY";
-  if (input.lastVerification?.status === "SUCCESS") {
-    const ageHours = Math.max(0, input.now.getTime() - input.lastVerification.verifiedAt.getTime()) / 3_600_000;
-    return ageHours <= LOGICAL_BACKUP_MAX_AGE_HOURS ? "HEALTHY" : "WARNING";
-  }
-  if (input.policyConfigured || input.toolingAvailable) return "DEGRADED";
-  return "UNKNOWN";
 }

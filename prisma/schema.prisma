@@ -81,6 +81,51 @@ model User {
   enrolledRegistrations QrRegistration[] @relation("QrRegistrationEnrolledBy")
   auditLogs             AuditLog[]       @relation("AuditLogActor")
   notifications         Notification[]
+  backupVerifications   BackupVerification[]
+}
+
+enum BackupVerificationType {
+  MANAGED_BACKUP
+  LOGICAL_BACKUP
+  RESTORE_REHEARSAL
+}
+
+enum BackupVerificationStatus {
+  VERIFIED
+  FAILED
+}
+
+enum ManagedBackupStatus {
+  ACTIVE
+  INACTIVE
+  UNKNOWN
+}
+
+enum PitrStatus {
+  ENABLED
+  DISABLED
+  UNKNOWN
+}
+
+model BackupVerification {
+  id                 String                   @id @default(cuid())
+  type               BackupVerificationType
+  status             BackupVerificationStatus
+  provider           String
+  verificationMethod String
+  verifiedAt         DateTime                 @default(now())
+  backupCreatedAt    DateTime?
+  sizeBytes          BigInt?
+  checksumSha256     String?
+  pgDumpVersion      String?
+  managedStatus      ManagedBackupStatus?
+  pitrStatus         PitrStatus?
+  verifiedByUserId   String?
+  createdAt          DateTime                 @default(now())
+  verifiedByUser     User?                    @relation(fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([type, verifiedAt])
+  @@index([verifiedByUserId, verifiedAt])
 }
 
 model VrRecord {

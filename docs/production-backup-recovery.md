@@ -1,5 +1,18 @@
 # Production backup and disaster recovery
 
+## Operational metadata workflow
+
+After a successful custom-format dump and `pg_restore --list` verification, `npm run backup:production` creates a sibling `.manifest.json`. The manifest contains only timestamp, byte size, SHA-256 checksum, pg_dump version, and verification method; it contains no connection string or absolute path.
+
+Never upload the backup file to the application. In System Health → Yedekleme → Backup Durumunu Doğrula, record the Supabase managed backup/PITR state and optionally paste the manifest JSON. This operation is ADMIN-only and writes an AuditLog.
+
+Recommended cadence:
+
+- Verify Supabase managed backup at least every 7 days.
+- Produce a logical backup and record its manifest at least every 7 days.
+- Perform an isolated restore rehearsal at least every 90 days.
+- PITR is optional enhanced protection; disabled PITR alone does not reduce backup health.
+
 This runbook defines the two-layer recovery approach for LeadBridges: Supabase managed physical backup/PITR plus an independently stored PostgreSQL logical backup. It does not assert that either layer is enabled; operators must verify the current production project in Supabase before every risky release.
 
 ## 1. Verify Supabase managed protection

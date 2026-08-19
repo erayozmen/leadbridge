@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateHealthStatus, deriveAcademyIntegrationHealth, deriveBackupHealth, deriveCronHealth } from "./domain";
+import { aggregateHealthStatus, deriveAcademyIntegrationHealth, deriveCronHealth } from "./domain";
 import { deriveSecurityHealth } from "./security";
 
 const now = new Date("2026-08-18T12:00:00.000Z");
@@ -11,9 +11,6 @@ describe("system health derivation", () => {
   it("marks a failed latest cron as failed", () => expect(deriveCronHealth({ now, latestCron: { status: "FAILED", startedAt: now }, lastSuccessfulCron: { startedAt: now } })).toBe("FAILED"));
   it("does not treat a partial cron as healthy", () => expect(deriveCronHealth({ now, latestCron: { status: "PARTIAL", startedAt: now }, lastSuccessfulCron: { startedAt: now } })).toBe("WARNING"));
   it("derives integration status from configuration and the real latest run", () => { expect(deriveAcademyIntegrationHealth(true, "COMPLETED")).toBe("HEALTHY"); expect(deriveAcademyIntegrationHealth(false, "COMPLETED")).toBe("DEGRADED"); });
-  it("does not promote unknown managed backup state to healthy", () => expect(deriveBackupHealth({ policyConfigured: false, toolingAvailable: false, managedBackupVerified: false, pitrVerified: false, now })).toBe("UNKNOWN"));
-  it("marks documented tooling without verified backup as degraded", () => expect(deriveBackupHealth({ policyConfigured: true, toolingAvailable: true, managedBackupVerified: false, pitrVerified: false, now })).toBe("DEGRADED"));
-  it("marks failed verification as failed and stale verification as warning", () => { expect(deriveBackupHealth({ policyConfigured: true, toolingAvailable: true, managedBackupVerified: false, pitrVerified: false, lastVerification: { status: "FAILED", verifiedAt: now }, now })).toBe("FAILED"); expect(deriveBackupHealth({ policyConfigured: true, toolingAvailable: true, managedBackupVerified: false, pitrVerified: false, lastVerification: { status: "SUCCESS", verifiedAt: new Date("2026-08-16T12:00:00.000Z") }, now })).toBe("WARNING"); });
 });
 
 describe("security health derivation", () => {
