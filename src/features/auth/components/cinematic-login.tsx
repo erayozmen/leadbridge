@@ -82,7 +82,7 @@ export function CinematicLogin() {
       <div className={styles.content}>
         <header className={styles.brand} aria-label="LeadBridges">
           <div className={styles.logoShell}>
-            <Image className={styles.logo} src="/brand/leadbridges-logo.svg" alt="LeadBridges logosu" width={716} height={716} priority />
+            <Image className={styles.logo} src="/brand/leadbridges-logo.png" alt="" width={1254} height={1254} priority />
             <span className={styles.sweep} aria-hidden="true" />
           </div>
           <h1 className={styles.brandName}>LeadBridges</h1>
