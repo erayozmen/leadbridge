@@ -7,6 +7,7 @@ export const AUDIT_ENTITY_TYPES = {
   USER: "USER",
   EVENT: "EVENT",
   BACKUP_VERIFICATION: "BACKUP_VERIFICATION",
+  DEVICE: "DEVICE",
 } as const;
 
 export type AuditEntityType =

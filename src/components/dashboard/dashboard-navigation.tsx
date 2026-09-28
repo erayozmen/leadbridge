@@ -13,6 +13,7 @@ import {
   Bell,
   CircleDollarSign,
   HeartPulse,
+  Headset,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -37,6 +38,7 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   notifications: Bell,
   commissions: CircleDollarSign,
   health: HeartPulse,
+  devices: Headset,
 };
 
 type NavigationClick = Pick<
@@ -74,8 +76,8 @@ export function DashboardNavigation({
 }) {
   const pathname = usePathname();
   const groupLabels = role === "ADMIN"
-    ? new Map([[0, "Etkinlik"], [1, "Operasyon"], [8, "Yönetim ve raporlama"]])
-    : new Map([[0, "Operasyon"]]);
+    ? new Map([[0, "Etkinlik"], [1, "Operasyon"], [8, "Yönetim ve raporlama"], [15, "VR Yönetimi"]])
+    : new Map([[0, "Operasyon"], [4, "VR Yönetimi"]]);
 
   return (
     <nav aria-label="Ana menü" className={cn("space-y-1", compact && "px-2")}>

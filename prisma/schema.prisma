@@ -47,6 +47,7 @@ model Event {
   qrCodes         QrCode[]
   qrRegistrations QrRegistration[]
   notifications   Notification[]
+  devices         Device[]
 
   @@index([status, eventDate])
   @@index([eventDate])
@@ -67,21 +68,69 @@ model School {
 }
 
 model User {
-  id                    String           @id @default(cuid())
-  authUserId            String           @unique
-  email                 String           @unique
+  id                    String               @id @default(cuid())
+  authUserId            String               @unique
+  email                 String               @unique
   fullName              String
-  role                  UserRole         @default(STAFF)
-  status                UserStatus       @default(ACTIVE)
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
-  createdVrRecords      VrRecord[]       @relation("VrRecordCreatedBy")
-  studentMatches        StudentMatch[]   @relation("StudentMatchMatchedBy")
-  attendedRegistrations QrRegistration[] @relation("QrRegistrationAttendedBy")
-  enrolledRegistrations QrRegistration[] @relation("QrRegistrationEnrolledBy")
-  auditLogs             AuditLog[]       @relation("AuditLogActor")
+  role                  UserRole             @default(STAFF)
+  status                UserStatus           @default(ACTIVE)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  createdVrRecords      VrRecord[]           @relation("VrRecordCreatedBy")
+  studentMatches        StudentMatch[]       @relation("StudentMatchMatchedBy")
+  attendedRegistrations QrRegistration[]     @relation("QrRegistrationAttendedBy")
+  enrolledRegistrations QrRegistration[]     @relation("QrRegistrationEnrolledBy")
+  auditLogs             AuditLog[]           @relation("AuditLogActor")
   notifications         Notification[]
   backupVerifications   BackupVerification[]
+  createdDevices        Device[]             @relation("DeviceCreatedBy")
+}
+
+enum DeviceStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+}
+
+enum DeviceTokenKind {
+  PAIRING
+  ACCESS
+}
+
+model Device {
+  id              String        @id @default(cuid())
+  name            String
+  serialNumber    String?       @unique
+  model           String?
+  appVersion      String?
+  status          DeviceStatus  @default(PENDING)
+  eventId         String?
+  lastSeenAt      DateTime?
+  createdByUserId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  event           Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  createdByUser   User          @relation("DeviceCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  tokens          DeviceToken[]
+
+  @@index([status])
+  @@index([eventId])
+  @@index([lastSeenAt])
+}
+
+model DeviceToken {
+  id         String          @id @default(cuid())
+  deviceId   String
+  tokenHash  String          @unique
+  kind       DeviceTokenKind
+  expiresAt  DateTime?
+  usedAt     DateTime?
+  revokedAt  DateTime?
+  lastUsedAt DateTime?
+  createdAt  DateTime        @default(now())
+  device     Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, kind])
 }
 
 enum BackupVerificationType {

@@ -19,7 +19,7 @@ describe("dashboard navigation", () => {
   it("limits STAFF navigation to operational modules", () => {
     const labels = getDashboardNavigation("STAFF").map((item) => item.label);
 
-    expect(labels).toEqual(["VR Kaydı", "VR İzleyenler", "Etkinlik Katılımı", "QR Tarayıcı"]);
+    expect(labels).toEqual(["VR Kaydı", "VR İzleyenler", "Etkinlik Katılımı", "QR Tarayıcı", "Cihazlar"]);
     expect(labels).not.toContain("Raporlar");
     expect(labels).not.toContain("Kullanıcılar");
     expect(labels).not.toContain("Okullar");
@@ -41,6 +41,14 @@ describe("dashboard navigation", () => {
         (entry) => entry.icon === "attendance",
       );
       expect(item).toMatchObject({ href: "/dashboard/attendance" });
+    }
+  });
+
+  it("routes ADMIN and STAFF to device management", () => {
+    for (const role of ["ADMIN", "STAFF"] as const) {
+      expect(getDashboardNavigation(role)).toContainEqual(
+        expect.objectContaining({ label: "Cihazlar", icon: "devices", href: "/dashboard/devices" }),
+      );
     }
   });
 
