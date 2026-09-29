@@ -28,7 +28,7 @@ describe("system health snapshot", () => {
   it("uses only CRON queries as cron evidence and calculates Istanbul schedule", async () => {
     const snapshot = await getSystemHealthSnapshot(new Date("2026-08-18T07:15:00.000Z"));
     expect(mocks.findFirst.mock.calls.some(([query]) => query.where?.source === "CRON")).toBe(true);
-    expect(snapshot.academyCron.nextScheduledAt.toISOString()).toBe("2026-08-18T09:00:00.000Z");
+    expect(snapshot.academyCron.nextScheduledAt.toISOString()).toBe("2026-08-19T03:00:00.000Z");
   });
   it("returns measured performance data without secrets or PII", async () => {
     mocks.findMany.mockResolvedValue([run]);

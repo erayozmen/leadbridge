@@ -2,8 +2,8 @@ export const HEALTH_STATUSES = ["HEALTHY", "WARNING", "DEGRADED", "FAILED", "UNK
 export type HealthStatus = typeof HEALTH_STATUSES[number];
 
 export const ACADEMY_CRON_HEALTH = {
-  healthyWithinHours: 7,
-  warningWithinHours: 13,
+  healthyWithinHours: 26,
+  warningWithinHours: 50,
 } as const;
 
 const priority: Record<HealthStatus, number> = { HEALTHY: 0, UNKNOWN: 1, WARNING: 2, DEGRADED: 3, FAILED: 4 };
