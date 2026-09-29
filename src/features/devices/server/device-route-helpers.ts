@@ -14,6 +14,9 @@ const DEVICE_ERROR_STATUS: Record<DeviceErrorCode, number> = {
   INVALID_PAIRING_CODE: 401,
   SERIAL_NUMBER_IN_USE: 409,
   DEVICE_DISABLED: 403,
+  DEVICE_NOT_FOUND: 404,
+  DEVICE_NAME_IN_USE: 409,
+  DEVICE_STATE_CONFLICT: 409,
 };
 
 /** JSON response that is never cached; device responses may carry credentials. */

@@ -30,14 +30,12 @@ export async function authenticateDevice(
       device: { select: { id: true, status: true, appVersion: true } },
     },
   });
-  if (
-    !record ||
-    record.kind !== DeviceTokenKind.ACCESS ||
-    record.revokedAt ||
-    (record.expiresAt && record.expiresAt <= now)
-  ) {
-    return null;
-  }
+  if (!record || record.kind !== DeviceTokenKind.ACCESS) return null;
+
+  // Tokens of a disabled device are revoked, but still identify it so the caller can answer 403
+  // ("disabled") instead of 401 ("pair again").
+  const disabled = record.device.status === DeviceStatus.DISABLED;
+  if (!disabled && (record.revokedAt || (record.expiresAt && record.expiresAt <= now))) return null;
 
   return {
     deviceId: record.device.id,

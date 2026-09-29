@@ -18,6 +18,7 @@ vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction } }));
 vi.mock("@/features/audit/services/write-audit-log", () => ({ writeAuditLog }));
 
 import { hashDeviceToken } from "@/features/devices/lib/device-token";
+import { PAIRING_CODE_TTL_MS } from "@/features/devices/lib/pairing-policy";
 import { pairDevice } from "@/features/devices/services/pair-device";
 
 const now = new Date("2026-09-28T12:00:00.000Z");
@@ -119,6 +120,24 @@ describe("pairDevice", () => {
   it("rejects a serial number that belongs to another device", async () => {
     tx.device.findUnique.mockResolvedValue({ id: "device_2" });
     await expect(pairDevice({ pairingCode: "ABCDEFGHJKMN", serialNumber: "2G0Y" }, now)).rejects.toThrow("SERIAL_NUMBER_IN_USE");
+  });
+
+  it("accepts a code until the end of its 6-hour window and rejects it afterwards", async () => {
+    const issuedAt = new Date("2026-09-28T06:00:00.000Z");
+    const expiresAt = new Date(issuedAt.getTime() + PAIRING_CODE_TTL_MS);
+    tx.deviceToken.findUnique.mockResolvedValue({ ...validPairing, expiresAt });
+
+    await expect(pairDevice({ pairingCode: "ABCDEFGHJKMN" }, new Date(expiresAt.getTime() - 1))).resolves.toMatchObject({ deviceId: "device_1" });
+    await expect(pairDevice({ pairingCode: "ABCDEFGHJKMN" }, expiresAt)).rejects.toThrow("INVALID_PAIRING_CODE");
+    await expect(pairDevice({ pairingCode: "ABCDEFGHJKMN" }, new Date(expiresAt.getTime() + 1))).rejects.toThrow("INVALID_PAIRING_CODE");
+  });
+
+  it("rejects a code that was replaced by a renewal", async () => {
+    // Renewal sets revokedAt on every earlier code of the device.
+    tx.deviceToken.findUnique.mockResolvedValue({ ...validPairing, revokedAt: new Date("2026-09-28T11:30:00.000Z") });
+    await expect(pairDevice({ pairingCode: "ABCDEFGHJKMN" }, now)).rejects.toThrow("INVALID_PAIRING_CODE");
+    expect(tx.deviceToken.updateMany).not.toHaveBeenCalled();
+    expect(tx.deviceToken.create).not.toHaveBeenCalled();
   });
 
   it("rejects unknown fields", async () => {

@@ -7,7 +7,7 @@ const PAIRING_CODE_GROUP = 4;
 const ACCESS_TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PAIRING_CODE_PATTERN = new RegExp(`^[${PAIRING_CODE_ALPHABET}]{${PAIRING_CODE_LENGTH}}$`);
 
-export const PAIRING_CODE_TTL_MS = 15 * 60 * 1000;
+export { PAIRING_CODE_TTL_HOURS, PAIRING_CODE_TTL_MS } from "@/features/devices/lib/pairing-policy";
 
 export function generateDeviceAccessToken(): string {
   return randomBytes(32).toString("base64url");

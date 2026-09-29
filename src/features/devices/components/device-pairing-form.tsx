@@ -10,9 +10,10 @@ import {
   createDevicePairingAction,
   type DevicePairingActionState,
 } from "@/features/devices/actions/device-actions";
+import { PAIRING_CODE_TTL_HOURS } from "@/features/devices/lib/pairing-policy";
 
 const initial: DevicePairingActionState = { status: "idle", message: null };
-const time = new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" });
+const dateTime = new Intl.DateTimeFormat("tr-TR", { dateStyle: "short", timeStyle: "short" });
 
 export function DevicePairingForm() {
   const [state, action, pending] = useActionState(createDevicePairingAction, initial);
@@ -25,12 +26,13 @@ export function DevicePairingForm() {
         {state.status === "error" ? <p role="status" className="text-sm text-destructive">{state.message}</p> : null}
         <Button disabled={pending}>{pending ? "Oluşturuluyor..." : "Cihaz Eşleştir"}</Button>
       </form>
-      {state.pairing ? <PairingCode key={state.pairing.deviceId} {...state.pairing} /> : null}
+      {state.pairing ? <PairingCodeNotice key={state.pairing.pairingCode} {...state.pairing} /> : null}
     </div>
   );
 }
 
-function PairingCode({ pairingCode, expiresAt }: { pairingCode: string; expiresAt: string }) {
+/** Displays a freshly issued pairing code; the server never returns it again. */
+export function PairingCodeNotice({ pairingCode, expiresAt }: { pairingCode: string; expiresAt: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -51,7 +53,7 @@ function PairingCode({ pairingCode, expiresAt }: { pairingCode: string; expiresA
         {copied ? "Kopyalandı" : "Kodu Kopyala"}
       </Button>
       <p className="text-xs leading-5 text-muted-foreground">
-        15 dakika geçerlidir (son: {time.format(new Date(expiresAt))}). Kod yalnızca bir kez gösterilir; Quest üzerindeki LeadBridge VR Agent uygulamasına girin.
+        {PAIRING_CODE_TTL_HOURS} saat geçerlidir (son: {dateTime.format(new Date(expiresAt))}). Kod yalnızca bir kez gösterilir; Quest üzerindeki LeadBridge VR Agent uygulamasına girin.
       </p>
     </div>
   );

@@ -41,6 +41,16 @@ describe("authenticateDevice", () => {
     expect(findUnique).not.toHaveBeenCalled();
   });
 
+  it("identifies a disabled device by its revoked token so the heartbeat can answer 403", async () => {
+    findUnique.mockResolvedValue({ ...record, revokedAt: now, device: { ...record.device, status: DeviceStatus.DISABLED } });
+    await expect(authenticateDevice(`Bearer ${token}`, now)).resolves.toMatchObject({ deviceId: "device_1", status: DeviceStatus.DISABLED });
+  });
+
+  it("still rejects a pairing code presented as a bearer token for a disabled device", async () => {
+    findUnique.mockResolvedValue({ ...record, kind: DeviceTokenKind.PAIRING, device: { ...record.device, status: DeviceStatus.DISABLED } });
+    await expect(authenticateDevice(`Bearer ${token}`, now)).resolves.toBeNull();
+  });
+
   it.each([
     ["unknown", null],
     ["revoked", { ...record, revokedAt: now }],
