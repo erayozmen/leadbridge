@@ -84,6 +84,7 @@ model User {
   notifications         Notification[]
   backupVerifications   BackupVerification[]
   createdDevices        Device[]             @relation("DeviceCreatedBy")
+  uploadedVideos        Video[]              @relation("VideoUploadedBy")
 }
 
 enum DeviceStatus {
@@ -131,6 +132,35 @@ model DeviceToken {
   device     Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, kind])
+}
+
+enum VideoStatus {
+  UPLOADING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+/// Central video library entry. The file itself lives in the private `videos` Storage bucket.
+model Video {
+  id               String      @id @default(cuid())
+  displayName      String
+  originalFilename String
+  /// Object key inside the `videos` bucket: "<uuid>/<sanitized filename>".
+  storagePath      String      @unique
+  sizeBytes        BigInt
+  mimeType         String
+  /// Hex SHA-256 of the original bytes; null until known.
+  sha256           String?
+  durationSeconds  Int?
+  status           VideoStatus @default(UPLOADING)
+  uploadedByUserId String
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  uploadedByUser   User        @relation("VideoUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@index([uploadedByUserId])
 }
 
 enum BackupVerificationType {

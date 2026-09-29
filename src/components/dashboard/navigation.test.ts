@@ -52,6 +52,13 @@ describe("dashboard navigation", () => {
     }
   });
 
+  it("routes only ADMIN to the video library", () => {
+    expect(getDashboardNavigation("ADMIN")).toContainEqual(
+      expect.objectContaining({ label: "Videolar", icon: "videos", href: "/dashboard/videos" }),
+    );
+    expect(getDashboardNavigation("STAFF").some((item) => item.href === "/dashboard/videos")).toBe(false);
+  });
+
   it("routes only ADMIN to reports", () => {
     expect(getDashboardNavigation("ADMIN")).toContainEqual(
       expect.objectContaining({ label: "Raporlar", href: "/dashboard/reports" }),

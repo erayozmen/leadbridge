@@ -2,8 +2,8 @@ export type DashboardRole = "ADMIN" | "STAFF";
 
 export type DashboardNavItem = {
   label: string;
-  icon: "overview" | "students" | "vr" | "qr" | "attendance" | "reports" | "users" | "events" | "notifications" | "commissions" | "health" | "devices";
-  href?: "/dashboard" | "/dashboard/events" | "/dashboard/notifications" | "/dashboard/commissions" | "/dashboard/system-health" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/vr-records/import" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/attendance/scanner" | "/dashboard/schools" | "/dashboard/reports" | "/dashboard/audit-logs" | "/dashboard/users" | "/dashboard/devices";
+  icon: "overview" | "students" | "vr" | "qr" | "attendance" | "reports" | "users" | "events" | "notifications" | "commissions" | "health" | "devices" | "videos";
+  href?: "/dashboard" | "/dashboard/events" | "/dashboard/notifications" | "/dashboard/commissions" | "/dashboard/system-health" | "/dashboard/vr-records" | "/dashboard/vr-records/new" | "/dashboard/vr-records/import" | "/dashboard/qr-codes" | "/dashboard/qr-registrations" | "/dashboard/attendance" | "/dashboard/attendance/scanner" | "/dashboard/schools" | "/dashboard/reports" | "/dashboard/audit-logs" | "/dashboard/users" | "/dashboard/devices" | "/dashboard/videos";
   comingSoon?: boolean;
 };
 
@@ -24,6 +24,7 @@ const adminNavigation: DashboardNavItem[] = [
   { label: "Denetim Kayıtları", icon: "reports", href: "/dashboard/audit-logs" },
   { label: "Kullanıcılar", icon: "users", href: "/dashboard/users" },
   { label: "Cihazlar", icon: "devices", href: "/dashboard/devices" },
+  { label: "Videolar", icon: "videos", href: "/dashboard/videos" },
 ];
 
 const staffNavigation: DashboardNavItem[] = [

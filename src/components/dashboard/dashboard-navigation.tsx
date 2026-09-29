@@ -14,6 +14,7 @@ import {
   CircleDollarSign,
   HeartPulse,
   Headset,
+  Film,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,6 +40,7 @@ const icons: Record<DashboardNavItem["icon"], LucideIcon> = {
   commissions: CircleDollarSign,
   health: HeartPulse,
   devices: Headset,
+  videos: Film,
 };
 
 type NavigationClick = Pick<
