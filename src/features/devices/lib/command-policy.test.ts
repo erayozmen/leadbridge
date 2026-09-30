@@ -6,6 +6,7 @@ import {
   isAllowedCommandTransition,
   isDeviceOnline,
   isPendingCommandExpired,
+  isPlaybackEndReport,
   isStaleAcknowledgement,
   PENDING_COMMAND_TTL_SECONDS,
 } from "@/features/devices/lib/command-policy";
@@ -41,6 +42,12 @@ describe("command policy", () => {
     expect(isAllowedCommandTransition("STOP", "DELIVERED", "COMPLETED")).toBe(true);
     expect(isAllowedCommandTransition("STOP", "DELIVERED", "DOWNLOADING")).toBe(false);
     expect(isAllowedCommandTransition("STOP", "DELIVERED", "PLAYING")).toBe(false);
+  });
+
+  it("treats only COMPLETED and FAILED as a player's end report", () => {
+    expect(isPlaybackEndReport("COMPLETED")).toBe(true);
+    expect(isPlaybackEndReport("FAILED")).toBe(true);
+    for (const status of ["DELIVERED", "DOWNLOADING", "PLAYING"] as const) expect(isPlaybackEndReport(status)).toBe(false);
   });
 
   it("decides online and expiry by time windows", () => {

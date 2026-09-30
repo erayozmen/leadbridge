@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => {
   const tx = {
-    deviceCommand: { findUnique: vi.fn(), updateMany: vi.fn() },
+    deviceCommand: { findUnique: vi.fn(), updateMany: vi.fn(), findFirst: vi.fn() },
     device: { update: vi.fn() },
     deviceVideo: { upsert: vi.fn() },
   };
@@ -28,6 +28,7 @@ import {
   DOWNLOAD_URL_TTL_SECONDS,
   IDLE_POLL_SECONDS,
   PENDING_COMMAND_TTL_SECONDS,
+  PLAYING_POLL_SECONDS,
 } from "@/features/devices/lib/command-policy";
 import { createVideoDownload, listPendingCommands, reportCommandStatus } from "@/features/devices/services/agent-commands";
 
@@ -62,7 +63,25 @@ describe("agent commands", () => {
     it("only looks at the authenticated device's own open commands", async () => {
       mocks.findFirst.mockResolvedValue(null);
       await listPendingCommands("device_7", now);
-      expect(mocks.findFirst.mock.calls[0][0].where).toEqual({ deviceId: "device_7", status: { in: ["PENDING", "DELIVERED", "DOWNLOADING"] } });
+      expect(mocks.findFirst.mock.calls[0][0].where).toEqual({ deviceId: "device_7", status: { in: ["PENDING", "DELIVERED", "DOWNLOADING", "PLAYING"] } });
+    });
+
+    it("delivers nothing while a video is PLAYING but polls faster than idle so a STOP arrives quickly", async () => {
+      mocks.findFirst.mockResolvedValue(pending({ status: "PLAYING", createdAt: longAgo }));
+      await expect(listPendingCommands("device_1", now)).resolves.toEqual({ commands: [], pollIntervalSeconds: PLAYING_POLL_SECONDS });
+      expect(PLAYING_POLL_SECONDS).toBe(8);
+      expect(PLAYING_POLL_SECONDS).toBeLessThan(IDLE_POLL_SECONDS);
+      // Reading never changes state: no expiry, no failure, no audit.
+      expect(mocks.transaction).not.toHaveBeenCalled();
+    });
+
+    it("delivers a STOP created during playback on the next heartbeat", async () => {
+      // The STOP superseded the PLAYING command, so it is now the newest open command.
+      mocks.findFirst.mockResolvedValue({ id: "cmd_stop", type: DeviceCommandType.STOP, status: "PENDING", videoId: null, createdAt: recently, video: null });
+      await expect(listPendingCommands("device_1", now)).resolves.toEqual({
+        commands: [{ id: "cmd_stop", type: "STOP", videoId: null, video: null }],
+        pollIntervalSeconds: ACTIVE_POLL_SECONDS,
+      });
     });
 
     it("returns a PLAY_VIDEO command with video metadata without changing its state", async () => {
@@ -176,10 +195,79 @@ describe("agent commands", () => {
       expect(auditActions()).toEqual(["DEVICE_VIDEO_DOWNLOAD_COMPLETED", "DEVICE_COMMAND_FAILED"]);
     });
 
-    it("tells the Agent when its command was superseded", async () => {
+    it.each(["DELIVERED", "DOWNLOADING", "PLAYING"])("tells the Agent to abandon a superseded command on %s", async (status) => {
       tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED"));
-      await expect(reportCommandStatus(device, "cmd_1", { status: "PLAYING" }, now)).rejects.toThrow("COMMAND_CANCELLED");
+      await expect(reportCommandStatus(device, "cmd_1", { status }, now)).rejects.toThrow("COMMAND_CANCELLED");
       expect(tx.deviceCommand.updateMany).not.toHaveBeenCalled();
+      expect(tx.device.update).not.toHaveBeenCalled();
+      expect(tx.deviceCommand.findFirst).not.toHaveBeenCalled();
+    });
+
+    describe("playback end of a superseded (CANCELLED) command", () => {
+      it("returns the device to IDLE when no newer command was taken, keeping the command CANCELLED", async () => {
+        tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED"));
+        tx.deviceCommand.findFirst.mockResolvedValue(null);
+        await expect(reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now)).resolves.toEqual({ status: "CANCELLED" });
+        expect(tx.deviceCommand.findFirst).toHaveBeenCalledWith({
+          where: { deviceId: "device_1", createdAt: { gt: recently }, deliveredAt: { not: null } },
+          select: { id: true },
+        });
+        expect(tx.device.update).toHaveBeenCalledWith({
+          where: { id: "device_1" },
+          data: { playbackState: DevicePlaybackState.IDLE, currentVideoId: null, playbackUpdatedAt: now },
+          select: { id: true },
+        });
+        expect(tx.deviceCommand.updateMany).not.toHaveBeenCalled();
+        expect(tx.deviceVideo.upsert).not.toHaveBeenCalled();
+        expect(mocks.writeAuditLog).not.toHaveBeenCalled();
+      });
+
+      it("never overwrites the state of a newer command the headset already took", async () => {
+        tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED"));
+        tx.deviceCommand.findFirst.mockResolvedValue({ id: "cmd_newer" });
+        await expect(reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now)).resolves.toEqual({ status: "CANCELLED" });
+        expect(tx.device.update).not.toHaveBeenCalled();
+        expect(tx.deviceCommand.updateMany).not.toHaveBeenCalled();
+      });
+
+      it("records a player failure as ERROR", async () => {
+        tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED"));
+        tx.deviceCommand.findFirst.mockResolvedValue(null);
+        await reportCommandStatus(device, "cmd_1", { status: "FAILED", error: "PLAYBACK_ERROR" }, now);
+        expect(tx.device.update.mock.calls[0][0].data).toEqual({ playbackState: DevicePlaybackState.ERROR, currentVideoId: "video_1", playbackUpdatedAt: now });
+        expect(tx.deviceCommand.updateMany).not.toHaveBeenCalled();
+      });
+
+      it("marks the device STOPPED when a superseded STOP had already run", async () => {
+        tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED", { type: DeviceCommandType.STOP, videoId: null }));
+        tx.deviceCommand.findFirst.mockResolvedValue(null);
+        await reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now);
+        expect(tx.device.update.mock.calls[0][0].data).toEqual({ playbackState: DevicePlaybackState.STOPPED, currentVideoId: null, playbackUpdatedAt: now });
+      });
+
+      it("is idempotent when the same end report arrives twice", async () => {
+        tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED"));
+        tx.deviceCommand.findFirst.mockResolvedValue(null);
+        await reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now);
+        await reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now);
+        expect(tx.device.update).toHaveBeenCalledTimes(2);
+        expect(tx.device.update.mock.calls[0][0]).toEqual(tx.device.update.mock.calls[1][0]);
+        expect(tx.deviceCommand.updateMany).not.toHaveBeenCalled();
+        expect(mocks.writeAuditLog).not.toHaveBeenCalled();
+      });
+
+      it("hides another device's cancelled command", async () => {
+        tx.deviceCommand.findUnique.mockResolvedValue(playCommand("CANCELLED", { deviceId: "device_2" }));
+        await expect(reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now)).rejects.toThrow("COMMAND_NOT_FOUND");
+        expect(tx.device.update).not.toHaveBeenCalled();
+        expect(tx.deviceCommand.findFirst).not.toHaveBeenCalled();
+      });
+    });
+
+    it("still rejects an end report for an expired command without touching the device", async () => {
+      tx.deviceCommand.findUnique.mockResolvedValue(playCommand("EXPIRED"));
+      await expect(reportCommandStatus(device, "cmd_1", { status: "COMPLETED" }, now)).rejects.toThrow("COMMAND_EXPIRED");
+      expect(tx.device.update).not.toHaveBeenCalled();
     });
 
     it("rejects any progress on an expired command", async () => {

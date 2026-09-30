@@ -19,7 +19,10 @@ import {
   IDLE_POLL_SECONDS,
   isAllowedCommandTransition,
   isPendingCommandExpired,
+  isPlaybackEndReport,
   isStaleAcknowledgement,
+  OPEN_COMMAND_STATUSES,
+  PLAYING_POLL_SECONDS,
   type ReportableStatus,
 } from "@/features/devices/lib/command-policy";
 import type { AuthenticatedDevice } from "@/features/devices/server/authenticate-device";
@@ -83,11 +86,13 @@ function commandAudit(
  * Returns the command this headset still has to act on, for the heartbeat response. Reading does
  * not change the state: the Agent acknowledges with DELIVERED, so a lost response is simply
  * re-delivered. A command that was never acknowledged in time expires instead of playing late.
+ * While a video is PLAYING nothing is delivered, but the shorter interval lets a STOP arrive quickly.
  */
 export async function listPendingCommands(deviceId: string, now = new Date()): Promise<PendingCommands> {
   const idle = { commands: [], pollIntervalSeconds: IDLE_POLL_SECONDS };
+  // A new command supersedes the open one, so the newest open command is the only one.
   const command = await prisma.deviceCommand.findFirst({
-    where: { deviceId, status: { in: [...DELIVERABLE_COMMAND_STATUSES] } },
+    where: { deviceId, status: { in: [...OPEN_COMMAND_STATUSES] } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -99,6 +104,7 @@ export async function listPendingCommands(deviceId: string, now = new Date()): P
     },
   });
   if (!command) return idle;
+  if (command.status === DeviceCommandStatus.PLAYING) return { commands: [], pollIntervalSeconds: PLAYING_POLL_SECONDS };
 
   if (command.status === DeviceCommandStatus.PENDING && isPendingCommandExpired(command.createdAt, now)) {
     await prisma.$transaction(async (tx) => {
@@ -158,7 +164,17 @@ export async function reportCommandStatus(
     });
     // Another device's command is indistinguishable from a missing one.
     if (!command || command.deviceId !== device.deviceId) throw new DeviceError("COMMAND_NOT_FOUND");
-    if (command.status === DeviceCommandStatus.CANCELLED) throw new DeviceError("COMMAND_CANCELLED");
+    if (command.status === DeviceCommandStatus.CANCELLED) {
+      if (!isPlaybackEndReport(status)) throw new DeviceError("COMMAND_CANCELLED");
+      // The superseded player has ended. Keep the command CANCELLED, but let this report correct the
+      // device state unless the headset has already taken a newer command (whose state must win).
+      const newer = await tx.deviceCommand.findFirst({
+        where: { deviceId: device.deviceId, createdAt: { gt: command.createdAt }, deliveredAt: { not: null } },
+        select: { id: true },
+      });
+      if (!newer) await applyPlaybackState(tx, device.deviceId, command, status, now);
+      return { status: DeviceCommandStatus.CANCELLED };
+    }
     if (command.status === DeviceCommandStatus.EXPIRED) throw new DeviceError("COMMAND_EXPIRED");
     // Too late to act on; the next heartbeat marks it EXPIRED (and audits it).
     if (command.status === DeviceCommandStatus.PENDING && isPendingCommandExpired(command.createdAt, now)) {
@@ -181,15 +197,7 @@ export async function reportCommandStatus(
     });
     if (updated.count !== 1) throw new DeviceError("INVALID_COMMAND_TRANSITION");
 
-    const playback = playbackFor(command.type, status);
-    if (playback) {
-      const keepsVideo = playback === DevicePlaybackState.DOWNLOADING || playback === DevicePlaybackState.PLAYING || playback === DevicePlaybackState.ERROR;
-      await tx.device.update({
-        where: { id: device.deviceId },
-        data: { playbackState: playback, currentVideoId: keepsVideo ? command.videoId : null, playbackUpdatedAt: now },
-        select: { id: true },
-      });
-    }
+    await applyPlaybackState(tx, device.deviceId, command, status, now);
 
     // The file finished downloading when a DOWNLOADING command moves on to playback (or fails in the player).
     const downloadCompleted =
@@ -211,6 +219,24 @@ export async function reportCommandStatus(
       await commandAudit(tx, AUDIT_ACTIONS.DEVICE_COMMAND_FAILED, device.deviceId, command, { error: error ?? "UNKNOWN" });
     }
     return { status };
+  });
+}
+
+/** Mirrors a report onto the reporting device only; other headsets are never touched. */
+async function applyPlaybackState(
+  tx: TransactionClient,
+  deviceId: string,
+  command: { type: DeviceCommandType; videoId: string | null },
+  status: ReportableStatus,
+  now: Date,
+) {
+  const playback = playbackFor(command.type, status);
+  if (!playback) return;
+  const keepsVideo = playback === DevicePlaybackState.DOWNLOADING || playback === DevicePlaybackState.PLAYING || playback === DevicePlaybackState.ERROR;
+  await tx.device.update({
+    where: { id: deviceId },
+    data: { playbackState: playback, currentVideoId: keepsVideo ? command.videoId : null, playbackUpdatedAt: now },
+    select: { id: true },
   });
 }
 
