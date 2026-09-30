@@ -17,6 +17,13 @@ export function listDevices() {
       status: true,
       appVersion: true,
       lastSeenAt: true,
+      playbackState: true,
+      currentVideo: { select: { displayName: true } },
+      commands: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { type: true, status: true, error: true, createdAt: true, video: { select: { displayName: true } } },
+      },
     },
   });
 }

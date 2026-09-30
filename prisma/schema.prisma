@@ -85,6 +85,7 @@ model User {
   backupVerifications   BackupVerification[]
   createdDevices        Device[]             @relation("DeviceCreatedBy")
   uploadedVideos        Video[]              @relation("VideoUploadedBy")
+  createdDeviceCommands DeviceCommand[]      @relation("DeviceCommandCreatedBy")
 }
 
 enum DeviceStatus {
@@ -99,20 +100,27 @@ enum DeviceTokenKind {
 }
 
 model Device {
-  id              String        @id @default(cuid())
-  name            String
-  serialNumber    String?       @unique
-  model           String?
-  appVersion      String?
-  status          DeviceStatus  @default(PENDING)
-  eventId         String?
-  lastSeenAt      DateTime?
-  createdByUserId String
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  event           Event?        @relation(fields: [eventId], references: [id], onDelete: SetNull)
-  createdByUser   User          @relation("DeviceCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  tokens          DeviceToken[]
+  id                String              @id @default(cuid())
+  name              String
+  serialNumber      String?             @unique
+  model             String?
+  appVersion        String?
+  status            DeviceStatus        @default(PENDING)
+  eventId           String?
+  lastSeenAt        DateTime?
+  createdByUserId   String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  /// Last playback state reported by the Agent.
+  playbackState     DevicePlaybackState @default(IDLE)
+  currentVideoId    String?
+  playbackUpdatedAt DateTime?
+  event             Event?              @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  createdByUser     User                @relation("DeviceCreatedBy", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  currentVideo      Video?              @relation("DeviceCurrentVideo", fields: [currentVideoId], references: [id], onDelete: SetNull)
+  tokens            DeviceToken[]
+  commands          DeviceCommand[]
+  videos            DeviceVideo[]
 
   @@index([status])
   @@index([eventId])
@@ -143,24 +151,102 @@ enum VideoStatus {
 
 /// Central video library entry. The file itself lives in the private `videos` Storage bucket.
 model Video {
-  id               String      @id @default(cuid())
+  id               String          @id @default(cuid())
   displayName      String
   originalFilename String
   /// Object key inside the `videos` bucket: "<uuid>/<sanitized filename>".
-  storagePath      String      @unique
+  storagePath      String          @unique
   sizeBytes        BigInt
   mimeType         String
   /// Hex SHA-256 of the original bytes; null until known.
   sha256           String?
   durationSeconds  Int?
-  status           VideoStatus @default(UPLOADING)
+  status           VideoStatus     @default(UPLOADING)
   uploadedByUserId String
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  uploadedByUser   User        @relation("VideoUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  uploadedByUser   User            @relation("VideoUploadedBy", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  playingOnDevices Device[]        @relation("DeviceCurrentVideo")
+  deviceCommands   DeviceCommand[]
+  deviceCopies     DeviceVideo[]
 
   @@index([status, createdAt])
   @@index([uploadedByUserId])
+}
+
+enum DevicePlaybackState {
+  IDLE
+  DOWNLOADING
+  PLAYING
+  PAUSED
+  STOPPED
+  ERROR
+}
+
+enum DeviceCommandType {
+  PLAY_VIDEO
+  STOP
+}
+
+enum DeviceCommandStatus {
+  PENDING
+  DELIVERED
+  DOWNLOADING
+  PLAYING
+  COMPLETED
+  FAILED
+  CANCELLED
+  EXPIRED
+}
+
+/// A remote-control instruction for one headset, delivered with the heartbeat response.
+model DeviceCommand {
+  id              String              @id @default(cuid())
+  deviceId        String
+  type            DeviceCommandType
+  videoId         String?
+  status          DeviceCommandStatus @default(PENDING)
+  /// Short machine-readable failure code reported by the Agent (never free text or secrets).
+  error           String?
+  createdByUserId String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  deliveredAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  failedAt        DateTime?
+  device          Device              @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  video           Video?              @relation(fields: [videoId], references: [id], onDelete: Restrict)
+  createdByUser   User?               @relation("DeviceCommandCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([deviceId, status, createdAt])
+  @@index([videoId])
+  @@index([createdByUserId])
+}
+
+enum DeviceVideoStatus {
+  DOWNLOADING
+  READY
+  FAILED
+  EVICTED
+}
+
+/// The copy of a library video on one headset, as reported by the Agent.
+model DeviceVideo {
+  id           String            @id @default(cuid())
+  deviceId     String
+  videoId      String
+  status       DeviceVideoStatus
+  downloadedAt DateTime?
+  lastPlayedAt DateTime?
+  lastError    String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  device       Device            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  video        Video             @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([deviceId, videoId])
+  @@index([videoId])
 }
 
 enum BackupVerificationType {

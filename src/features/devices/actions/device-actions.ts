@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 
-import { requireStaffOrAdmin } from "@/features/auth/server/auth";
+import { requireAdmin, requireStaffOrAdmin } from "@/features/auth/server/auth";
 import { createDevicePairing } from "@/features/devices/services/create-device-pairing";
 import { DeviceError } from "@/features/devices/services/device-errors";
 import {
@@ -11,6 +11,7 @@ import {
   disableDevice,
   renewDevicePairing,
 } from "@/features/devices/services/manage-device";
+import { sendPlayVideoCommand, sendStopCommand } from "@/features/devices/services/device-commands";
 import { guardMutation } from "@/lib/security/request-guard";
 
 export type DevicePairingActionState = {
@@ -30,11 +31,14 @@ const text = (data: FormData, key: string) => {
 const errorState = (message: string): DevicePairingActionState => ({ status: "error", message });
 
 /** Shared authorization and abuse protection for every device mutation. */
-async function authorize(scope: string): Promise<DevicePairingActionState | null> {
+async function authorize(scope: string, adminOnly = false): Promise<DevicePairingActionState | null> {
   try {
-    await requireStaffOrAdmin();
+    if (adminOnly) await requireAdmin();
+    else await requireStaffOrAdmin();
   } catch {
-    return errorState("Bu işlem yalnızca yönetici veya personel tarafından yapılabilir.");
+    return errorState(adminOnly
+      ? "Bu işlem yalnızca yönetici tarafından yapılabilir."
+      : "Bu işlem yalnızca yönetici veya personel tarafından yapılabilir.");
   }
   if (!await guardMutation(scope, MUTATION_LIMIT)) {
     return errorState("Çok fazla işlem yapıldı. Lütfen kısa süre sonra tekrar deneyin.");
@@ -52,6 +56,10 @@ function failure(error: unknown, fallback: string, invalidInput = "Geçersiz ist
         return errorState("Cihaz bulunamadı. Sayfayı yenileyip tekrar deneyin.");
       case "DEVICE_STATE_CONFLICT":
         return errorState("Cihazın durumu değişmiş. Sayfayı yenileyip tekrar deneyin.");
+      case "VIDEO_NOT_AVAILABLE":
+        return errorState("Seçilen video artık kullanılamıyor. Listeyi yenileyip başka bir video seçin.");
+      case "DEVICE_OFFLINE":
+        return errorState("Cihaz çevrimdışı. Agent uygulamasının açık ve internete bağlı olduğundan emin olup tekrar deneyin.");
       default:
         break;
     }
@@ -125,5 +133,37 @@ export async function disableDeviceAction(
     return { status: "success", message: "Cihaz kaldırıldı; erişimi iptal edildi." };
   } catch (error) {
     return failure(error, "Cihaz kaldırılamadı. Lütfen tekrar deneyin.");
+  }
+}
+
+export async function sendPlayVideoAction(
+  _state: DevicePairingActionState,
+  data: FormData,
+): Promise<DevicePairingActionState> {
+  const denied = await authorize("device-command-play", true);
+  if (denied) return denied;
+  const videoId = text(data, "videoId");
+  if (!videoId) return errorState("Önce bir video seçin.");
+  try {
+    await sendPlayVideoCommand({ deviceId: text(data, "deviceId"), videoId });
+    revalidatePath(DEVICES_PATH);
+    return { status: "success", message: "Komut gönderildi; cihaz birkaç saniye içinde alacak." };
+  } catch (error) {
+    return failure(error, "Komut gönderilemedi. Lütfen tekrar deneyin.");
+  }
+}
+
+export async function sendStopAction(
+  _state: DevicePairingActionState,
+  data: FormData,
+): Promise<DevicePairingActionState> {
+  const denied = await authorize("device-command-stop", true);
+  if (denied) return denied;
+  try {
+    await sendStopCommand({ deviceId: text(data, "deviceId") });
+    revalidatePath(DEVICES_PATH);
+    return { status: "success", message: "Durdurma komutu gönderildi." };
+  } catch (error) {
+    return failure(error, "Komut gönderilemedi. Lütfen tekrar deneyin.");
   }
 }

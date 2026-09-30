@@ -61,6 +61,13 @@ export async function readStoredVideoHead(storagePath: string): Promise<Uint8Arr
   return head.subarray(0, length);
 }
 
+/** Short-lived signed download URL for one object. Never logged or stored. */
+export async function createSignedVideoDownload(storagePath: string, expiresInSeconds: number): Promise<string> {
+  const { data, error } = await bucket().createSignedUrl(storagePath, expiresInSeconds);
+  if (error || !data?.signedUrl) throw new VideoError("STORAGE_UNAVAILABLE");
+  return data.signedUrl;
+}
+
 /** Best-effort removal of an object that failed validation; the database record is kept. */
 export async function removeStoredVideo(storagePath: string): Promise<void> {
   await bucket().remove([storagePath]).catch(() => undefined);

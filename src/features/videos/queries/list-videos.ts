@@ -31,3 +31,15 @@ export async function listVideos({ includeArchived = false }: { includeArchived?
 }
 
 export type VideoListItem = Awaited<ReturnType<typeof listVideos>>[number];
+
+/** READY videos that can be sent to a headset; used by the device controls. */
+export function listPlayableVideos() {
+  return prisma.video.findMany({
+    where: { status: VideoStatus.READY },
+    orderBy: { displayName: "asc" },
+    take: VIDEO_LIST_LIMIT,
+    select: { id: true, displayName: true },
+  });
+}
+
+export type PlayableVideo = Awaited<ReturnType<typeof listPlayableVideos>>[number];
